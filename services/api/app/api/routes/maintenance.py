@@ -8,7 +8,11 @@ from app.api.dependencies import CurrentUser, DbSession
 from app.api.routes.items import _default_household, _owned_item
 from app.models.maintenance import MaintenanceTask
 from app.schemas.common import Page
-from app.schemas.items import MaintenanceTaskCreate, MaintenanceTaskResponse, MaintenanceTaskUpdate
+from app.schemas.items import (
+    MaintenanceTaskCreate,
+    MaintenanceTaskResponse,
+    MaintenanceTaskUpdate,
+)
 
 router = APIRouter(prefix="/maintenance", tags=["maintenance"])
 
@@ -23,7 +27,10 @@ def _owned_task(session: DbSession, user_id: str, task_id: str) -> MaintenanceTa
         .where(MaintenanceTask.id == task_id)
     )
     if task is None or task.household.owner_id != user_id:
-        raise HTTPException(status_code=404, detail={"code": "task_not_found", "message": "Task was not found."})
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "task_not_found", "message": "Task was not found."},
+        )
     return task
 
 
@@ -51,15 +58,24 @@ def list_tasks(
     total_statement = select(func.count()).select_from(MaintenanceTask).where(*filters)
     tasks = list(session.scalars(statement))
     total = session.scalar(total_statement) or 0
-    return Page[MaintenanceTaskResponse](items=tasks, page=page, page_size=page_size, total=total)
+    return Page[MaintenanceTaskResponse](
+        items=tasks, page=page, page_size=page_size, total=total
+    )
 
 
-@router.post("", response_model=MaintenanceTaskResponse, status_code=status.HTTP_201_CREATED)
-def create_task(payload: MaintenanceTaskCreate, session: DbSession, user: CurrentUser) -> MaintenanceTask:
+@router.post(
+    "", response_model=MaintenanceTaskResponse, status_code=status.HTTP_201_CREATED
+)
+def create_task(
+    payload: MaintenanceTaskCreate, session: DbSession, user: CurrentUser
+) -> MaintenanceTask:
     household = _default_household(session, user.id)
     item = _owned_item(session, user.id, payload.item_id)
     if item.household_id != household.id:
-        raise HTTPException(status_code=404, detail={"code": "item_not_found", "message": "Item was not found."})
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "item_not_found", "message": "Item was not found."},
+        )
     task = MaintenanceTask(household_id=household.id, **payload.model_dump())
     session.add(task)
     session.commit()
@@ -84,7 +100,9 @@ def update_task(
 
 
 @router.post("/{task_id}/complete", response_model=MaintenanceTaskResponse)
-def complete_task(task_id: str, session: DbSession, user: CurrentUser) -> MaintenanceTask:
+def complete_task(
+    task_id: str, session: DbSession, user: CurrentUser
+) -> MaintenanceTask:
     task = _owned_task(session, user.id, task_id)
     task.completed_at = datetime.now(UTC)
     task.next_due_date = task.next_due_date + timedelta(days=task.frequency_days)
