@@ -7,28 +7,40 @@ import '../storage/token_storage.dart';
 final apiClientProvider = Provider<Dio>((ref) {
   final config = ref.watch(appConfigProvider);
   final tokenStorage = ref.watch(tokenStorageProvider);
-  final client = Dio(
-    BaseOptions(
-      baseUrl: config.apiBaseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 15),
-      headers: const {'Accept': 'application/json'},
-    ),
+  final options = BaseOptions(
+    baseUrl: config.apiBaseUrl,
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 15),
+    headers: const {'Accept': 'application/json'},
   );
+  final client = Dio(options);
+  final renewalClient = Dio(options);
 
   client.interceptors.add(
-    _AuthInterceptor(client: client, tokenStorage: tokenStorage),
+    _AuthInterceptor(
+      client: client,
+      renewalClient: renewalClient,
+      tokenStorage: tokenStorage,
+    ),
   );
-  ref.onDispose(client.close);
+  ref.onDispose(() {
+    client.close();
+    renewalClient.close();
+  });
   return client;
 });
 
 class _AuthInterceptor extends QueuedInterceptor {
-  _AuthInterceptor({required Dio client, required TokenStorage tokenStorage})
-      : _client = client,
+  _AuthInterceptor({
+    required Dio client,
+    required Dio renewalClient,
+    required TokenStorage tokenStorage,
+  })  : _client = client,
+        _renewalClient = renewalClient,
         _tokenStorage = tokenStorage;
 
   final Dio _client;
+  final Dio _renewalClient;
   final TokenStorage _tokenStorage;
 
   @override
@@ -50,10 +62,9 @@ class _AuthInterceptor extends QueuedInterceptor {
   ) async {
     final request = error.requestOptions;
     final isUnauthorized = error.response?.statusCode == 401;
-    final isRefreshRequest = request.path.endsWith('/auth/refresh');
     final hasAlreadyRetried = request.extra['homeledger_retried'] == true;
 
-    if (!isUnauthorized || isRefreshRequest || hasAlreadyRetried) {
+    if (!isUnauthorized || hasAlreadyRetried) {
       handler.next(error);
       return;
     }
@@ -65,32 +76,31 @@ class _AuthInterceptor extends QueuedInterceptor {
       return;
     }
 
-    final refreshToken = await _tokenStorage.readRefreshToken();
-    if (refreshToken == null || refreshToken.isEmpty) {
+    final sessionRenewalToken = await _tokenStorage.readRefreshToken();
+    if (sessionRenewalToken == null || sessionRenewalToken.isEmpty) {
       handler.next(error);
       return;
     }
 
     try {
-      final refreshResponse = await _client.post<Map<String, dynamic>>(
+      final response = await _renewalClient.post<Map<String, dynamic>>(
         '/auth/refresh',
-        data: {'refresh_token': refreshToken},
-        options: Options(extra: const {'homeledger_refresh_request': true}),
+        data: {'refresh_token': sessionRenewalToken},
       );
-      final payload = refreshResponse.data;
-      final refreshedAccessToken = payload?['access_token'];
-      final refreshedRefreshToken = payload?['refresh_token'];
-      if (refreshedAccessToken is! String || refreshedRefreshToken is! String) {
+      final payload = response.data;
+      final renewedAccessToken = payload?['access_token'];
+      final renewedRefreshToken = payload?['refresh_token'];
+      if (renewedAccessToken is! String || renewedRefreshToken is! String) {
         await _tokenStorage.clear();
         handler.next(error);
         return;
       }
 
       await _tokenStorage.save(
-        accessToken: refreshedAccessToken,
-        refreshToken: refreshedRefreshToken,
+        accessToken: renewedAccessToken,
+        refreshToken: renewedRefreshToken,
       );
-      await _retryWithAccessToken(request, refreshedAccessToken, handler, error);
+      await _retryWithAccessToken(request, renewedAccessToken, handler, error);
     } on DioException {
       await _tokenStorage.clear();
       handler.next(error);
