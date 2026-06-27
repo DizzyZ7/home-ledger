@@ -24,4 +24,22 @@ void main() {
     expect(find.text('Wi-Fi router'), findsOneWidget);
     expect(find.text('Что нужно сделать'), findsOneWidget);
   });
+
+  testWidgets('mock workspace completes maintenance from a selected inventory item', (tester) async {
+    await tester.pumpWidget(const ProviderScope(child: HomeLedgerApp()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Wi-Fi router'));
+    await tester.pumpAndSettle();
+
+    final completeAction = find.text('Отметить выполненным');
+    await tester.ensureVisible(completeAction);
+    await tester.pumpAndSettle();
+    await tester.tap(completeAction);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('Задача выполнена. Следующая дата обновлена.'), findsOneWidget);
+    expect(find.text('Review router firmware'), findsOneWidget);
+  });
 }
