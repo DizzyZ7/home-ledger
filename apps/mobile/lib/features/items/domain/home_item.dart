@@ -58,6 +58,8 @@ class HomeItem {
         'notes': notes,
       };
 
+  Map<String, dynamic> toUpdatePayload() => toCreatePayload();
+
   static String? _dateOnly(DateTime? value) {
     if (value == null) {
       return null;
