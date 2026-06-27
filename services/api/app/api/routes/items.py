@@ -1,4 +1,5 @@
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func, select
@@ -10,6 +11,7 @@ from app.schemas.common import Page
 from app.schemas.items import ItemCreate, ItemResponse, ItemUpdate
 
 router = APIRouter(prefix="/items", tags=["items"])
+WarrantyState = Literal["expired", "expiring", "valid", "none"]
 
 
 def _default_household(session: DbSession, user_id: str) -> Household:
@@ -34,27 +36,40 @@ def list_items(
     page_size: int = Query(default=30, ge=1, le=100),
     query: str | None = Query(default=None, min_length=1, max_length=120),
     archived: bool = Query(default=False),
+    warranty_state: WarrantyState | None = Query(default=None),
+    warranty_window_days: int = Query(default=45, ge=1, le=3650),
 ) -> Page[ItemResponse]:
     household = _default_household(session, user.id)
     archive_filter = HomeItem.archived_at.is_not(None) if archived else HomeItem.archived_at.is_(None)
-    statement = select(HomeItem).where(
-        HomeItem.household_id == household.id,
-        archive_filter,
-    )
-    count_statement = (
-        select(func.count())
-        .select_from(HomeItem)
-        .where(
-            HomeItem.household_id == household.id,
-            archive_filter,
-        )
-    )
-    if query:
-        pattern = f"%{query.strip()}%"
-        statement = statement.where(HomeItem.name.ilike(pattern))
-        count_statement = count_statement.where(HomeItem.name.ilike(pattern))
+    filters = [HomeItem.household_id == household.id, archive_filter]
 
-    statement = statement.order_by(HomeItem.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    if query:
+        filters.append(HomeItem.name.ilike(f"%{query.strip()}%"))
+
+    if warranty_state is not None:
+        today = date.today()
+        window_end = today + timedelta(days=warranty_window_days)
+        if warranty_state == "expired":
+            filters.append(HomeItem.warranty_expires_at < today)
+        elif warranty_state == "expiring":
+            filters.extend(
+                [
+                    HomeItem.warranty_expires_at >= today,
+                    HomeItem.warranty_expires_at <= window_end,
+                ]
+            )
+        elif warranty_state == "valid":
+            filters.append(HomeItem.warranty_expires_at > window_end)
+        else:
+            filters.append(HomeItem.warranty_expires_at.is_(None))
+
+    order_by = (
+        HomeItem.warranty_expires_at.asc()
+        if warranty_state is not None and warranty_state != "none"
+        else HomeItem.created_at.desc()
+    )
+    statement = select(HomeItem).where(*filters).order_by(order_by).offset((page - 1) * page_size).limit(page_size)
+    count_statement = select(func.count()).select_from(HomeItem).where(*filters)
     return Page[ItemResponse](
         items=list(session.scalars(statement)),
         page=page,
