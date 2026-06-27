@@ -7,6 +7,7 @@ import '../../../app.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../items/domain/home_item.dart';
+import '../../items/presentation/item_localizations.dart';
 import 'item_list_controller.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -22,6 +23,11 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(l10n.inventory),
         actions: [
+          IconButton(
+            tooltip: l10n.archive,
+            icon: const Icon(Icons.archive_outlined),
+            onPressed: () => context.push('/items/archived'),
+          ),
           IconButton(
             tooltip: l10n.language,
             icon: const Icon(Icons.language_outlined),
