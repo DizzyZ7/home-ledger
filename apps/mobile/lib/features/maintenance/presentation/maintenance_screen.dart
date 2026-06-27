@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../domain/maintenance_task.dart';
 import 'maintenance_list_controller.dart';
+import 'maintenance_localizations.dart';
 
 class MaintenanceScreen extends ConsumerStatefulWidget {
   const MaintenanceScreen({super.key});
