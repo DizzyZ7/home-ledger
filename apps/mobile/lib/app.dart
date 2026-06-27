@@ -10,6 +10,7 @@ import 'features/auth/presentation/auth_screen.dart';
 import 'features/auth/presentation/session_controller.dart';
 import 'features/dashboard/presentation/home_screen.dart';
 import 'features/items/presentation/item_form_screen.dart';
+import 'features/maintenance/presentation/maintenance_screen.dart';
 
 final localeProvider = StateProvider<Locale>((ref) => const Locale('ru'));
 
@@ -23,6 +24,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'items/new',
             builder: (context, state) => const ItemFormScreen(),
+          ),
+          GoRoute(
+            path: 'maintenance',
+            builder: (context, state) => const MaintenanceScreen(),
           ),
         ],
       ),
