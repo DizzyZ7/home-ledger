@@ -128,6 +128,7 @@ class _ItemTile extends StatelessWidget {
           title: Text(item.name),
           subtitle: Text([if (item.location != null) item.location!, warrantyText].join(' · ')),
           trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/items/${item.id}'),
         ),
       ),
     );
