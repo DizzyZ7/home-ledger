@@ -12,6 +12,7 @@ import 'features/dashboard/presentation/dashboard_shell.dart';
 import 'features/items/domain/home_item.dart';
 import 'features/items/presentation/item_detail_screen.dart';
 import 'features/items/presentation/item_form_screen.dart';
+import 'features/maintenance/domain/maintenance_task.dart';
 import 'features/maintenance/presentation/maintenance_form_screen.dart';
 import 'features/maintenance/presentation/maintenance_screen.dart';
 
@@ -49,6 +50,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'maintenance/new',
             builder: (context, state) => const MaintenanceFormScreen(),
+          ),
+          GoRoute(
+            path: 'maintenance/:taskId/edit',
+            builder: (context, state) {
+              final task = state.extra;
+              if (task is MaintenanceTask) {
+                return MaintenanceFormScreen(task: task);
+              }
+              return const _MissingMaintenanceRoute();
+            },
           ),
           GoRoute(
             path: 'maintenance',
@@ -119,6 +130,18 @@ class _LaunchScreen extends StatelessWidget {
 
 class _MissingItemRoute extends StatelessWidget {
   const _MissingItemRoute();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(),
+      body: Center(child: Text(context.l10n.errorGeneric)),
+    );
+  }
+}
+
+class _MissingMaintenanceRoute extends StatelessWidget {
+  const _MissingMaintenanceRoute();
 
   @override
   Widget build(BuildContext context) {
