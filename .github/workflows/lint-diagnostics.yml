@@ -1,0 +1,37 @@
+name: Lint diagnostics
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  api-lint-report:
+    name: API Ruff diagnostics
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: python -m pip install --quiet -e '.[dev]'
+      - name: Generate Ruff report
+        run: |
+          ruff check . --output-format=json > ruff-report.json || true
+          ruff format --check . > ruff-format-report.txt || true
+      - name: Upload diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-ruff-diagnostics
+          path: |
+            services/api/ruff-report.json
+            services/api/ruff-format-report.txt
+          if-no-files-found: error
