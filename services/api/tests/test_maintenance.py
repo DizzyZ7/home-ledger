@@ -43,7 +43,5 @@ def test_complete_task_moves_next_due_date_by_frequency(client):
     )
 
     assert completed_response.status_code == 200
-    assert completed_response.json()["next_due_date"] == str(
-        date.today() + timedelta(days=90)
-    )
+    assert completed_response.json()["next_due_date"] == str(date.today() + timedelta(days=90))
     assert completed_response.json()["completed_at"] is not None
