@@ -9,6 +9,13 @@ extension MaintenanceTaskPayload on MaintenanceTask {
         'next_due_date': _dateOnly(nextDueDate),
       };
 
+  Map<String, dynamic> toUpdatePayload() => {
+        'title': title,
+        'notes': notes,
+        'frequency_days': frequencyDays,
+        'next_due_date': _dateOnly(nextDueDate),
+      };
+
   String _dateOnly(DateTime value) {
     final local = value.toLocal();
     final month = local.month.toString().padLeft(2, '0');
