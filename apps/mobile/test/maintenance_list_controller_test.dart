@@ -25,6 +25,13 @@ class FakeMaintenanceRepository implements MaintenanceRepository {
 
   @override
   Future<List<MaintenanceTask>> loadTasks() async => List.unmodifiable(_tasks);
+
+  @override
+  Future<MaintenanceTask> updateTask(MaintenanceTask task) async {
+    final index = _tasks.indexWhere((existing) => existing.id == task.id);
+    _tasks[index] = task;
+    return task;
+  }
 }
 
 void main() {
@@ -76,5 +83,41 @@ void main() {
 
     final tasks = container.read(maintenanceListControllerProvider).valueOrNull!;
     expect(tasks.map((task) => task.id), ['earlier', 'later']);
+  });
+
+  test('editing replaces a task and reorders it by its new due date', () async {
+    final first = MaintenanceTask(
+      id: 'first',
+      itemId: 'router',
+      title: 'Review firmware',
+      frequencyDays: 180,
+      nextDueDate: DateTime(2026, 8, 1),
+    );
+    final second = MaintenanceTask(
+      id: 'second',
+      itemId: 'washer',
+      title: 'Clean filter',
+      frequencyDays: 90,
+      nextDueDate: DateTime(2026, 9, 1),
+    );
+    final edited = MaintenanceTask(
+      id: 'second',
+      itemId: 'washer',
+      title: 'Clean filter thoroughly',
+      frequencyDays: 120,
+      nextDueDate: DateTime(2026, 7, 1),
+    );
+    final container = ProviderContainer(
+      overrides: [maintenanceRepositoryProvider.overrideWithValue(FakeMaintenanceRepository([first, second]))],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(maintenanceListControllerProvider.future);
+    await container.read(maintenanceListControllerProvider.notifier).updateTask(edited);
+
+    final tasks = container.read(maintenanceListControllerProvider).valueOrNull!;
+    expect(tasks.map((task) => task.id), ['second', 'first']);
+    expect(tasks.first.title, 'Clean filter thoroughly');
+    expect(tasks.first.frequencyDays, 120);
   });
 }
