@@ -24,7 +24,9 @@ class HomeItem(TimestampMixin, Base):
     notes: Mapped[str | None] = mapped_column(Text)
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
 
-    household: Mapped["Household"] = relationship(back_populates="items")
-    maintenance_tasks: Mapped[list["MaintenanceTask"]] = relationship(
-        back_populates="item", cascade="all, delete-orphan"
+    household = relationship("Household", back_populates="items")
+    maintenance_tasks = relationship(
+        "MaintenanceTask",
+        back_populates="item",
+        cascade="all, delete-orphan",
     )
