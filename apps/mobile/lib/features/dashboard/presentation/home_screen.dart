@@ -38,6 +38,7 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'homeledger-add-item',
         onPressed: () => context.push('/items/new'),
         icon: const Icon(Icons.add),
         label: Text(l10n.addItem),
