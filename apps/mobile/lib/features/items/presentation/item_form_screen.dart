@@ -96,7 +96,7 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: _category,
+                initialValue: _category,
                 decoration: InputDecoration(labelText: l10n.category),
                 items: const [
                   DropdownMenuItem(value: 'appliance', child: Text('Appliance')),
