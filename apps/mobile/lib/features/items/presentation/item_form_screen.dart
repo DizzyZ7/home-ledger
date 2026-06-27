@@ -1,0 +1,139 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_localizations.dart';
+import '../../dashboard/presentation/item_list_controller.dart';
+import '../domain/home_item.dart';
+
+class ItemFormScreen extends ConsumerStatefulWidget {
+  const ItemFormScreen({super.key});
+
+  @override
+  ConsumerState<ItemFormScreen> createState() => _ItemFormScreenState();
+}
+
+class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _locationController = TextEditingController();
+  final _notesController = TextEditingController();
+  String _category = 'appliance';
+  DateTime? _warrantyDate;
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _locationController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickWarrantyDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _warrantyDate ?? DateTime.now().add(const Duration(days: 365)),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (date != null) {
+      setState(() => _warrantyDate = date);
+    }
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      final item = HomeItem(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        name: _nameController.text.trim(),
+        category: _category,
+        location: _locationController.text.trim().isEmpty ? null : _locationController.text.trim(),
+        warrantyExpiresAt: _warrantyDate,
+        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+      );
+      await ref.read(itemListControllerProvider.notifier).add(item);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.itemSaved)));
+      Navigator.of(context).pop();
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final warrantyText = _warrantyDate == null
+        ? l10n.warrantyUntil
+        : '${l10n.warrantyUntil}: ${MaterialLocalizations.of(context).formatMediumDate(_warrantyDate!)}';
+
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.addItem)),
+      body: SafeArea(
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              TextFormField(
+                controller: _nameController,
+                autofocus: true,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(labelText: l10n.itemName),
+                validator: (value) => value == null || value.trim().isEmpty ? l10n.requiredField : null,
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _category,
+                decoration: InputDecoration(labelText: l10n.category),
+                items: const [
+                  DropdownMenuItem(value: 'appliance', child: Text('Appliance')),
+                  DropdownMenuItem(value: 'electronics', child: Text('Electronics')),
+                  DropdownMenuItem(value: 'tool', child: Text('Tool')),
+                  DropdownMenuItem(value: 'other', child: Text('Other')),
+                ],
+                onChanged: (value) => setState(() => _category = value ?? 'other'),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _locationController,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(labelText: l10n.location),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: _pickWarrantyDate,
+                icon: const Icon(Icons.event_outlined),
+                label: Text(warrantyText),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _notesController,
+                minLines: 3,
+                maxLines: 6,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(labelText: l10n.notes),
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: _saving ? null : _save,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(l10n.save),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

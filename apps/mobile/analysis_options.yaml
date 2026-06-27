@@ -7,5 +7,4 @@ analyzer:
 linter:
   rules:
     avoid_print: true
-    prefer_single_quotes: true
     use_super_parameters: true
