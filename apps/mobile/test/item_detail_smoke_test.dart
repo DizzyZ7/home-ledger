@@ -32,7 +32,10 @@ void main() {
     await tester.tap(find.text('Wi-Fi router'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Отметить выполненным'));
+    final completeAction = find.text('Отметить выполненным');
+    await tester.ensureVisible(completeAction);
+    await tester.pumpAndSettle();
+    await tester.tap(completeAction);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
