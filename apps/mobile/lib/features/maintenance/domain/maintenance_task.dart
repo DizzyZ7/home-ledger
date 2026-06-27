@@ -8,12 +8,14 @@ class MaintenanceTask {
     required this.title,
     required this.frequencyDays,
     required this.nextDueDate,
+    this.itemName,
     this.notes,
     this.completedAt,
   });
 
   final String id;
   final String itemId;
+  final String? itemName;
   final String title;
   final String? notes;
   final int frequencyDays;
@@ -44,6 +46,7 @@ class MaintenanceTask {
     return MaintenanceTask(
       id: json['id'] as String,
       itemId: json['item_id'] as String,
+      itemName: json['item_name'] as String?,
       title: json['title'] as String,
       notes: json['notes'] as String?,
       frequencyDays: json['frequency_days'] as int,
@@ -55,6 +58,7 @@ class MaintenanceTask {
   Map<String, dynamic> toJson() => {
         'id': id,
         'item_id': itemId,
+        'item_name': itemName,
         'title': title,
         'notes': notes,
         'frequency_days': frequencyDays,
@@ -66,6 +70,7 @@ class MaintenanceTask {
     return MaintenanceTask(
       id: id,
       itemId: itemId,
+      itemName: itemName,
       title: title,
       notes: notes,
       frequencyDays: frequencyDays,
