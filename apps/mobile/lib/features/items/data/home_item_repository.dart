@@ -141,10 +141,11 @@ class MockHomeItemRepository implements HomeItemRepository {
 
   @override
   Future<void> archiveItem(String itemId) async {
-    final removed = _items.removeWhere((item) => item.id == itemId);
-    if (removed == 0) {
+    final index = _items.indexWhere((item) => item.id == itemId);
+    if (index == -1) {
       throw const ApiException('Item was not found.');
     }
+    _items.removeAt(index);
   }
 }
 
