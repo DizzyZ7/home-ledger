@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/localization/app_localizations.dart';
 import '../domain/maintenance_task.dart';
@@ -125,6 +126,11 @@ class _MaintenanceTaskTile extends StatelessWidget {
                         ),
                       ],
                     ),
+                  ),
+                  IconButton(
+                    tooltip: l10n.editMaintenance,
+                    icon: const Icon(Icons.edit_outlined),
+                    onPressed: () => context.push('/maintenance/${task.id}/edit', extra: task),
                   ),
                 ],
               ),
