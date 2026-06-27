@@ -12,9 +12,7 @@ class HomeItem(TimestampMixin, Base):
     __tablename__ = "items"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4))
-    household_id: Mapped[str] = mapped_column(
-        ForeignKey("households.id", ondelete="CASCADE"), index=True, nullable=False
-    )
+    household_id: Mapped[str] = mapped_column(ForeignKey("households.id", ondelete="CASCADE"), index=True, nullable=False)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     category: Mapped[str] = mapped_column(String(60), default="other", nullable=False)
     location: Mapped[str | None] = mapped_column(String(120))
