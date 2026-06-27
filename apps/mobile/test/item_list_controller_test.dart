@@ -8,6 +8,9 @@ class FakeRepository implements HomeItemRepository {
   final List<HomeItem> _items = [const HomeItem(id: 'first', name: 'Router', category: 'electronics')];
 
   @override
+  Future<void> archiveItem(String itemId) async => _items.removeWhere((item) => item.id == itemId);
+
+  @override
   Future<HomeItem> createItem(HomeItem item) async {
     _items.add(item);
     return item;
@@ -15,6 +18,13 @@ class FakeRepository implements HomeItemRepository {
 
   @override
   Future<List<HomeItem>> loadItems() async => List.unmodifiable(_items);
+
+  @override
+  Future<HomeItem> updateItem(HomeItem item) async {
+    final index = _items.indexWhere((existing) => existing.id == item.id);
+    _items[index] = item;
+    return item;
+  }
 }
 
 void main() {
