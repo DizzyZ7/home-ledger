@@ -58,6 +58,7 @@ class MaintenanceTaskResponse(APIModel):
     id: str
     household_id: str
     item_id: str
+    item_name: str
     title: str
     notes: str | None
     frequency_days: int

@@ -25,7 +25,19 @@ jobs:
       - name: Install dependencies
         run: python -m pip install --quiet -e '.[dev]'
       - name: Lint
-        run: ruff check . && ruff format --check .
+        run: |
+          set -o pipefail
+          ruff check . 2>&1 | tee api-ruff-check-report.txt
+          ruff format --check . 2>&1 | tee api-ruff-format-report.txt
+      - name: Upload API lint report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-lint-report
+          path: |
+            services/api/api-ruff-check-report.txt
+            services/api/api-ruff-format-report.txt
+          if-no-files-found: ignore
       - name: Test
         run: pytest -q
 

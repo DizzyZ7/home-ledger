@@ -15,5 +15,7 @@ void main() {
 
     expect(find.text('Clean the washing machine filter'), findsOneWidget);
     expect(find.text('Review router firmware'), findsOneWidget);
+    expect(find.text('Вещь: Washing machine'), findsOneWidget);
+    expect(find.text('Вещь: Wi-Fi router'), findsOneWidget);
   });
 }

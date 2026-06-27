@@ -36,6 +36,11 @@ def test_complete_task_moves_next_due_date_by_frequency(client):
         },
     )
     assert task_response.status_code == 201
+    assert task_response.json()["item_name"] == "Dishwasher"
+
+    listed_response = client.get("/api/v1/maintenance", headers=headers)
+    assert listed_response.status_code == 200
+    assert listed_response.json()["items"][0]["item_name"] == "Dishwasher"
 
     completed_response = client.post(
         f"/api/v1/maintenance/{task_response.json()['id']}/complete",
@@ -43,5 +48,6 @@ def test_complete_task_moves_next_due_date_by_frequency(client):
     )
 
     assert completed_response.status_code == 200
+    assert completed_response.json()["item_name"] == "Dishwasher"
     assert completed_response.json()["next_due_date"] == str(date.today() + timedelta(days=90))
     assert completed_response.json()["completed_at"] is not None
