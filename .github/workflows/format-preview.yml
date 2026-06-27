@@ -1,0 +1,39 @@
+name: Format preview
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  api-format-preview:
+    name: API Ruff format preview
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: python -m pip install --quiet -e '.[dev]'
+      - name: Apply formatter in workspace
+        run: ruff format .
+      - name: Upload formatted files
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-formatted-preview
+          path: |
+            services/api/app/api/routes/items.py
+            services/api/app/api/routes/maintenance.py
+            services/api/app/models/item.py
+            services/api/app/models/maintenance.py
+            services/api/app/models/mixins.py
+            services/api/setup.py
+            services/api/tests/test_maintenance.py
