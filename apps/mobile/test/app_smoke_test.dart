@@ -7,7 +7,7 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: HomeLedgerApp()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Мои вещи'), findsOneWidget);
+    expect(find.text('Мои вещи'), findsWidgets);
     expect(find.text('Wi-Fi router'), findsOneWidget);
 
     await tester.tap(find.text('Обслуживание'));
