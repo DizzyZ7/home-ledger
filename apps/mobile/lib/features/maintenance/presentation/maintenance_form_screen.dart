@@ -95,6 +95,7 @@ class _MaintenanceFormScreenState extends ConsumerState<MaintenanceFormScreen> {
           return const _NoItemsForMaintenance();
         }
         return _MaintenanceTaskForm(
+          formKey: _formKey,
           items: data,
           titleController: _titleController,
           frequencyController: _frequencyController,
@@ -113,6 +114,7 @@ class _MaintenanceFormScreenState extends ConsumerState<MaintenanceFormScreen> {
 
 class _MaintenanceTaskForm extends StatelessWidget {
   const _MaintenanceTaskForm({
+    required this.formKey,
     required this.items,
     required this.titleController,
     required this.frequencyController,
@@ -125,6 +127,7 @@ class _MaintenanceTaskForm extends StatelessWidget {
     required this.onSave,
   });
 
+  final GlobalKey<FormState> formKey;
   final List<HomeItem> items;
   final TextEditingController titleController;
   final TextEditingController frequencyController;
@@ -139,14 +142,13 @@ class _MaintenanceTaskForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final form = context.findAncestorStateOfType<_MaintenanceFormScreenState>()!;
     final dateText = '${l10n.nextDueDate}: ${MaterialLocalizations.of(context).formatMediumDate(nextDueDate)}';
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.addMaintenance)),
       body: SafeArea(
         child: Form(
-          key: form._formKey,
+          key: formKey,
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
