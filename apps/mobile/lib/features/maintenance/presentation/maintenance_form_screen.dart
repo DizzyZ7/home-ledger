@@ -9,7 +9,9 @@ import 'maintenance_list_controller.dart';
 import 'maintenance_localizations.dart';
 
 class MaintenanceFormScreen extends ConsumerStatefulWidget {
-  const MaintenanceFormScreen({super.key});
+  const MaintenanceFormScreen({this.task, super.key});
+
+  final MaintenanceTask? task;
 
   @override
   ConsumerState<MaintenanceFormScreen> createState() => _MaintenanceFormScreenState();
@@ -23,6 +25,22 @@ class _MaintenanceFormScreenState extends ConsumerState<MaintenanceFormScreen> {
   String? _itemId;
   DateTime _nextDueDate = DateTime.now();
   bool _saving = false;
+
+  bool get _isEditing => widget.task != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final task = widget.task;
+    if (task == null) {
+      return;
+    }
+    _itemId = task.itemId;
+    _titleController.text = task.title;
+    _frequencyController.text = task.frequencyDays.toString();
+    _notesController.text = task.notes ?? '';
+    _nextDueDate = task.nextDueDate;
+  }
 
   @override
   void dispose() {
@@ -44,26 +62,36 @@ class _MaintenanceFormScreenState extends ConsumerState<MaintenanceFormScreen> {
     }
   }
 
-  Future<void> _save(String fallbackItemId) async {
+  Future<void> _save({String? fallbackItemId}) async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
+    final itemId = widget.task?.itemId ?? _itemId ?? fallbackItemId;
+    if (itemId == null) {
+      return;
+    }
+
     setState(() => _saving = true);
     try {
       final task = MaintenanceTask(
-        id: DateTime.now().microsecondsSinceEpoch.toString(),
-        itemId: _itemId ?? fallbackItemId,
+        id: widget.task?.id ?? DateTime.now().microsecondsSinceEpoch.toString(),
+        itemId: itemId,
         title: _titleController.text.trim(),
         notes: _optional(_notesController.text),
         frequencyDays: int.parse(_frequencyController.text.trim()),
         nextDueDate: _nextDueDate,
+        completedAt: widget.task?.completedAt,
       );
-      await ref.read(maintenanceListControllerProvider.notifier).createTask(task);
+      if (_isEditing) {
+        await ref.read(maintenanceListControllerProvider.notifier).updateTask(task);
+      } else {
+        await ref.read(maintenanceListControllerProvider.notifier).createTask(task);
+      }
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.l10n.taskSaved)),
+        SnackBar(content: Text(_isEditing ? context.l10n.taskUpdated : context.l10n.taskSaved)),
       );
       Navigator.of(context).pop();
     } catch (_) {
@@ -91,21 +119,33 @@ class _MaintenanceFormScreenState extends ConsumerState<MaintenanceFormScreen> {
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (_, __) => _MaintenanceFormError(onBack: () => Navigator.of(context).pop()),
       data: (data) {
-        if (data.isEmpty) {
+        if (data.isEmpty && !_isEditing) {
           return const _NoItemsForMaintenance();
         }
+
+        final selectedItemId = widget.task?.itemId ?? _itemId ?? data.first.id;
+        String selectedItemName = selectedItemId;
+        for (final item in data) {
+          if (item.id == selectedItemId) {
+            selectedItemName = item.name;
+            break;
+          }
+        }
+
         return _MaintenanceTaskForm(
           formKey: _formKey,
           items: data,
+          isEditing: _isEditing,
+          selectedItemId: selectedItemId,
+          selectedItemName: selectedItemName,
           titleController: _titleController,
           frequencyController: _frequencyController,
           notesController: _notesController,
-          selectedItemId: _itemId ?? data.first.id,
           nextDueDate: _nextDueDate,
           saving: _saving,
-          onItemChanged: (value) => setState(() => _itemId = value),
+          onItemChanged: _isEditing ? null : (value) => setState(() => _itemId = value),
           onPickDueDate: _pickDueDate,
-          onSave: () => _save(data.first.id),
+          onSave: () => _save(fallbackItemId: data.isEmpty ? null : data.first.id),
         );
       },
     );
@@ -116,10 +156,12 @@ class _MaintenanceTaskForm extends StatelessWidget {
   const _MaintenanceTaskForm({
     required this.formKey,
     required this.items,
+    required this.isEditing,
+    required this.selectedItemId,
+    required this.selectedItemName,
     required this.titleController,
     required this.frequencyController,
     required this.notesController,
-    required this.selectedItemId,
     required this.nextDueDate,
     required this.saving,
     required this.onItemChanged,
@@ -129,13 +171,15 @@ class _MaintenanceTaskForm extends StatelessWidget {
 
   final GlobalKey<FormState> formKey;
   final List<HomeItem> items;
+  final bool isEditing;
+  final String selectedItemId;
+  final String selectedItemName;
   final TextEditingController titleController;
   final TextEditingController frequencyController;
   final TextEditingController notesController;
-  final String selectedItemId;
   final DateTime nextDueDate;
   final bool saving;
-  final ValueChanged<String?> onItemChanged;
+  final ValueChanged<String?>? onItemChanged;
   final VoidCallback onPickDueDate;
   final VoidCallback onSave;
 
@@ -145,31 +189,37 @@ class _MaintenanceTaskForm extends StatelessWidget {
     final dateText = '${l10n.nextDueDate}: ${MaterialLocalizations.of(context).formatMediumDate(nextDueDate)}';
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.addMaintenance)),
+      appBar: AppBar(title: Text(isEditing ? l10n.editMaintenance : l10n.addMaintenance)),
       body: SafeArea(
         child: Form(
           key: formKey,
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              DropdownButtonFormField<String>(
-                key: ValueKey(selectedItemId),
-                initialValue: selectedItemId,
-                decoration: InputDecoration(labelText: l10n.selectItem),
-                items: items
-                    .map(
-                      (item) => DropdownMenuItem(
-                        value: item.id,
-                        child: Text(item.name),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: onItemChanged,
-              ),
+              if (isEditing)
+                InputDecorator(
+                  decoration: InputDecoration(labelText: l10n.selectItem),
+                  child: Text(selectedItemName),
+                )
+              else
+                DropdownButtonFormField<String>(
+                  key: ValueKey(selectedItemId),
+                  initialValue: selectedItemId,
+                  decoration: InputDecoration(labelText: l10n.selectItem),
+                  items: items
+                      .map(
+                        (item) => DropdownMenuItem(
+                          value: item.id,
+                          child: Text(item.name),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: onItemChanged,
+                ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: titleController,
-                autofocus: true,
+                autofocus: !isEditing,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(labelText: l10n.taskTitle),
                 validator: (value) => value == null || value.trim().isEmpty ? l10n.requiredField : null,
