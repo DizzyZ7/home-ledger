@@ -2,8 +2,7 @@ name: CI
 
 on:
   push: {}
-  pull_request:
-    branches: [main]
+  pull_request: {}
   workflow_dispatch: {}
 
 permissions:
@@ -46,6 +45,24 @@ jobs:
       - name: Fetch dependencies
         run: flutter pub get
       - name: Analyze
-        run: flutter analyze
+        run: |
+          set -o pipefail
+          flutter analyze 2>&1 | tee flutter-analyze-report.txt
+      - name: Upload analyzer report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-analyze-report
+          path: apps/mobile/flutter-analyze-report.txt
+          if-no-files-found: ignore
       - name: Test
-        run: flutter test
+        run: |
+          set -o pipefail
+          flutter test 2>&1 | tee flutter-test-report.txt
+      - name: Upload test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-test-report
+          path: apps/mobile/flutter-test-report.txt
+          if-no-files-found: ignore
