@@ -33,18 +33,20 @@ def list_items(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=30, ge=1, le=100),
     query: str | None = Query(default=None, min_length=1, max_length=120),
+    archived: bool = Query(default=False),
 ) -> Page[ItemResponse]:
     household = _default_household(session, user.id)
+    archive_filter = HomeItem.archived_at.is_not(None) if archived else HomeItem.archived_at.is_(None)
     statement = select(HomeItem).where(
         HomeItem.household_id == household.id,
-        HomeItem.archived_at.is_(None),
+        archive_filter,
     )
     count_statement = (
         select(func.count())
         .select_from(HomeItem)
         .where(
             HomeItem.household_id == household.id,
-            HomeItem.archived_at.is_(None),
+            archive_filter,
         )
     )
     if query:
@@ -81,6 +83,15 @@ def update_item(item_id: str, payload: ItemUpdate, session: DbSession, user: Cur
     item = _owned_item(session, user.id, item_id)
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(item, field, value)
+    session.commit()
+    session.refresh(item)
+    return item
+
+
+@router.post("/{item_id}/restore", response_model=ItemResponse)
+def restore_item(item_id: str, session: DbSession, user: CurrentUser) -> HomeItem:
+    item = _owned_item(session, user.id, item_id)
+    item.archived_at = None
     session.commit()
     session.refresh(item)
     return item
