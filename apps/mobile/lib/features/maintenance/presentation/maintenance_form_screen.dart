@@ -1,0 +1,262 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/localization/app_localizations.dart';
+import '../../dashboard/presentation/item_list_controller.dart';
+import '../../items/domain/home_item.dart';
+import '../domain/maintenance_task.dart';
+import 'maintenance_list_controller.dart';
+import 'maintenance_localizations.dart';
+
+class MaintenanceFormScreen extends ConsumerStatefulWidget {
+  const MaintenanceFormScreen({super.key});
+
+  @override
+  ConsumerState<MaintenanceFormScreen> createState() => _MaintenanceFormScreenState();
+}
+
+class _MaintenanceFormScreenState extends ConsumerState<MaintenanceFormScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _titleController = TextEditingController();
+  final _frequencyController = TextEditingController(text: '90');
+  final _notesController = TextEditingController();
+  String? _itemId;
+  DateTime _nextDueDate = DateTime.now();
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _frequencyController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDueDate() async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _nextDueDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+    if (selected != null) {
+      setState(() => _nextDueDate = selected);
+    }
+  }
+
+  Future<void> _save(String fallbackItemId) async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    setState(() => _saving = true);
+    try {
+      final task = MaintenanceTask(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        itemId: _itemId ?? fallbackItemId,
+        title: _titleController.text.trim(),
+        notes: _optional(_notesController.text),
+        frequencyDays: int.parse(_frequencyController.text.trim()),
+        nextDueDate: _nextDueDate,
+      );
+      await ref.read(maintenanceListControllerProvider.notifier).createTask(task);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.taskSaved)),
+      );
+      Navigator.of(context).pop();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.errorGeneric)),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  String? _optional(String value) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = ref.watch(itemListControllerProvider);
+    return items.when(
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (_, __) => _MaintenanceFormError(onBack: () => Navigator.of(context).pop()),
+      data: (data) {
+        if (data.isEmpty) {
+          return const _NoItemsForMaintenance();
+        }
+        return _MaintenanceTaskForm(
+          items: data,
+          titleController: _titleController,
+          frequencyController: _frequencyController,
+          notesController: _notesController,
+          selectedItemId: _itemId ?? data.first.id,
+          nextDueDate: _nextDueDate,
+          saving: _saving,
+          onItemChanged: (value) => setState(() => _itemId = value),
+          onPickDueDate: _pickDueDate,
+          onSave: () => _save(data.first.id),
+        );
+      },
+    );
+  }
+}
+
+class _MaintenanceTaskForm extends StatelessWidget {
+  const _MaintenanceTaskForm({
+    required this.items,
+    required this.titleController,
+    required this.frequencyController,
+    required this.notesController,
+    required this.selectedItemId,
+    required this.nextDueDate,
+    required this.saving,
+    required this.onItemChanged,
+    required this.onPickDueDate,
+    required this.onSave,
+  });
+
+  final List<HomeItem> items;
+  final TextEditingController titleController;
+  final TextEditingController frequencyController;
+  final TextEditingController notesController;
+  final String selectedItemId;
+  final DateTime nextDueDate;
+  final bool saving;
+  final ValueChanged<String?> onItemChanged;
+  final VoidCallback onPickDueDate;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final form = context.findAncestorStateOfType<_MaintenanceFormScreenState>()!;
+    final dateText = '${l10n.nextDueDate}: ${MaterialLocalizations.of(context).formatMediumDate(nextDueDate)}';
+
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.addMaintenance)),
+      body: SafeArea(
+        child: Form(
+          key: form._formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              DropdownButtonFormField<String>(
+                key: ValueKey(selectedItemId),
+                initialValue: selectedItemId,
+                decoration: InputDecoration(labelText: l10n.selectItem),
+                items: items
+                    .map(
+                      (item) => DropdownMenuItem(
+                        value: item.id,
+                        child: Text(item.name),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: onItemChanged,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: titleController,
+                autofocus: true,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(labelText: l10n.taskTitle),
+                validator: (value) => value == null || value.trim().isEmpty ? l10n.requiredField : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: frequencyController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(labelText: l10n.frequencyDays),
+                validator: (value) {
+                  final days = int.tryParse(value?.trim() ?? '');
+                  if (days == null || days < 1 || days > 3650) {
+                    return l10n.errorGeneric;
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: onPickDueDate,
+                icon: const Icon(Icons.event_outlined),
+                label: Text(dateText),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: notesController,
+                minLines: 3,
+                maxLines: 6,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(labelText: l10n.notes),
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: saving ? null : onSave,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(l10n.save),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NoItemsForMaintenance extends StatelessWidget {
+  const _NoItemsForMaintenance();
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return Scaffold(
+      appBar: AppBar(),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.inventory_2_outlined, size: 48),
+              const SizedBox(height: 16),
+              Text(l10n.noItemsForTaskTitle, style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 8),
+              Text(l10n.noItemsForTaskBody, textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MaintenanceFormError extends StatelessWidget {
+  const _MaintenanceFormError({required this.onBack});
+
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(),
+      body: Center(
+        child: OutlinedButton(
+          onPressed: onBack,
+          child: Text(context.l10n.cancel),
+        ),
+      ),
+    );
+  }
+}
