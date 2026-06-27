@@ -5,15 +5,47 @@ import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
 import '../domain/home_item.dart';
+import '../domain/warranty_state.dart';
 import 'home_item_cache.dart';
 
 abstract class HomeItemRepository {
   Future<List<HomeItem>> loadItems();
   Future<List<HomeItem>> loadArchivedItems();
+  Future<List<HomeItem>> loadWarrantyItems({
+    required WarrantyState state,
+    int windowDays = 45,
+  });
   Future<HomeItem> createItem(HomeItem item);
   Future<HomeItem> updateItem(HomeItem item);
   Future<void> archiveItem(String itemId);
   Future<HomeItem> restoreItem(String itemId);
+}
+
+List<HomeItem> filterWarrantyItems(
+  Iterable<HomeItem> items, {
+  required WarrantyState state,
+  int windowDays = 45,
+  DateTime? now,
+}) {
+  final reference = now ?? DateTime.now();
+  final today = DateTime(reference.year, reference.month, reference.day);
+  final windowEnd = today.add(Duration(days: windowDays));
+
+  final filtered = items.where((item) {
+    final warranty = item.warrantyExpiresAt;
+    return switch (state) {
+      WarrantyState.expired => warranty != null && warranty.isBefore(today),
+      WarrantyState.expiring =>
+        warranty != null && !warranty.isBefore(today) && !warranty.isAfter(windowEnd),
+      WarrantyState.valid => warranty != null && warranty.isAfter(windowEnd),
+      WarrantyState.none => warranty == null,
+    };
+  }).toList(growable: false);
+
+  if (state != WarrantyState.none) {
+    filtered.sort((left, right) => left.warrantyExpiresAt!.compareTo(right.warrantyExpiresAt!));
+  }
+  return List.unmodifiable(filtered);
 }
 
 class RemoteHomeItemRepository implements HomeItemRepository {
@@ -26,12 +58,7 @@ class RemoteHomeItemRepository implements HomeItemRepository {
   Future<List<HomeItem>> loadItems() async {
     try {
       final response = await _client.get<Map<String, dynamic>>('/items');
-      final payload = response.data;
-      final itemsRaw = payload?['items'] as List<dynamic>? ?? const [];
-      final items = itemsRaw
-          .whereType<Map<String, dynamic>>()
-          .map(HomeItem.fromJson)
-          .toList(growable: false);
+      final items = _itemsFromPayload(response.data);
       await _cache.write(items);
       return items;
     } on DioException catch (exception) {
@@ -50,13 +77,32 @@ class RemoteHomeItemRepository implements HomeItemRepository {
         '/items',
         queryParameters: const {'archived': true},
       );
-      final payload = response.data;
-      final itemsRaw = payload?['items'] as List<dynamic>? ?? const [];
-      return itemsRaw
-          .whereType<Map<String, dynamic>>()
-          .map(HomeItem.fromJson)
-          .toList(growable: false);
+      return _itemsFromPayload(response.data);
     } on DioException catch (exception) {
+      throw ApiException.fromDio(exception);
+    }
+  }
+
+  @override
+  Future<List<HomeItem>> loadWarrantyItems({
+    required WarrantyState state,
+    int windowDays = 45,
+  }) async {
+    try {
+      final response = await _client.get<Map<String, dynamic>>(
+        '/items',
+        queryParameters: {
+          'warranty_state': state.apiValue,
+          'warranty_window_days': windowDays,
+          'page_size': 100,
+        },
+      );
+      return _itemsFromPayload(response.data);
+    } on DioException catch (exception) {
+      final cached = await _cache.read();
+      if (cached.isNotEmpty) {
+        return filterWarrantyItems(cached, state: state, windowDays: windowDays);
+      }
       throw ApiException.fromDio(exception);
     }
   }
@@ -137,6 +183,14 @@ class RemoteHomeItemRepository implements HomeItemRepository {
       throw ApiException.fromDio(exception);
     }
   }
+
+  List<HomeItem> _itemsFromPayload(Map<String, dynamic>? payload) {
+    final itemsRaw = payload?['items'] as List<dynamic>? ?? const [];
+    return itemsRaw
+        .whereType<Map<String, dynamic>>()
+        .map(HomeItem.fromJson)
+        .toList(growable: false);
+  }
 }
 
 class MockHomeItemRepository implements HomeItemRepository {
@@ -166,6 +220,14 @@ class MockHomeItemRepository implements HomeItemRepository {
 
   @override
   Future<List<HomeItem>> loadArchivedItems() async => List.unmodifiable(_archivedItems);
+
+  @override
+  Future<List<HomeItem>> loadWarrantyItems({
+    required WarrantyState state,
+    int windowDays = 45,
+  }) async {
+    return filterWarrantyItems(_items, state: state, windowDays: windowDays);
+  }
 
   @override
   Future<HomeItem> createItem(HomeItem item) async {
