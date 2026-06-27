@@ -39,9 +39,13 @@ def list_items(
         HomeItem.household_id == household.id,
         HomeItem.archived_at.is_(None),
     )
-    count_statement = select(func.count()).select_from(HomeItem).where(
-        HomeItem.household_id == household.id,
-        HomeItem.archived_at.is_(None),
+    count_statement = (
+        select(func.count())
+        .select_from(HomeItem)
+        .where(
+            HomeItem.household_id == household.id,
+            HomeItem.archived_at.is_(None),
+        )
     )
     if query:
         pattern = f"%{query.strip()}%"
