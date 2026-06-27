@@ -24,7 +24,12 @@ class FakeMaintenanceRepository implements MaintenanceRepository {
   }
 
   @override
-  Future<List<MaintenanceTask>> loadTasks() async => List.unmodifiable(_tasks);
+  Future<List<MaintenanceTask>> loadTasks({String? itemId}) async {
+    if (itemId == null) {
+      return List.unmodifiable(_tasks);
+    }
+    return List.unmodifiable(_tasks.where((task) => task.itemId == itemId));
+  }
 
   @override
   Future<MaintenanceTask> updateTask(MaintenanceTask task) async {
