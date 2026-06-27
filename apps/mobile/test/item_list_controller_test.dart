@@ -5,13 +5,16 @@ import 'package:home_ledger/features/items/data/home_item_repository.dart';
 import 'package:home_ledger/features/items/domain/home_item.dart';
 
 class FakeHomeItemRepository implements HomeItemRepository {
-  FakeHomeItemRepository(this._items);
+  FakeHomeItemRepository(this._items, {List<HomeItem>? archivedItems})
+      : _archivedItems = archivedItems ?? [];
 
   final List<HomeItem> _items;
+  final List<HomeItem> _archivedItems;
 
   @override
   Future<void> archiveItem(String itemId) async {
-    _items.removeWhere((item) => item.id == itemId);
+    final index = _items.indexWhere((item) => item.id == itemId);
+    _archivedItems.add(_items.removeAt(index));
   }
 
   @override
@@ -21,7 +24,18 @@ class FakeHomeItemRepository implements HomeItemRepository {
   }
 
   @override
+  Future<List<HomeItem>> loadArchivedItems() async => List.unmodifiable(_archivedItems);
+
+  @override
   Future<List<HomeItem>> loadItems() async => List.unmodifiable(_items);
+
+  @override
+  Future<HomeItem> restoreItem(String itemId) async {
+    final index = _archivedItems.indexWhere((item) => item.id == itemId);
+    final item = _archivedItems.removeAt(index);
+    _items.insert(0, item);
+    return item;
+  }
 
   @override
   Future<HomeItem> updateItem(HomeItem item) async {
