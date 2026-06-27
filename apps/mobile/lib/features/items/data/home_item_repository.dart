@@ -10,6 +10,8 @@ import 'home_item_cache.dart';
 abstract class HomeItemRepository {
   Future<List<HomeItem>> loadItems();
   Future<HomeItem> createItem(HomeItem item);
+  Future<HomeItem> updateItem(HomeItem item);
+  Future<void> archiveItem(String itemId);
 }
 
 class RemoteHomeItemRepository implements HomeItemRepository {
@@ -61,6 +63,40 @@ class RemoteHomeItemRepository implements HomeItemRepository {
       throw ApiException.fromDio(exception);
     }
   }
+
+  @override
+  Future<HomeItem> updateItem(HomeItem item) async {
+    try {
+      final response = await _client.patch<Map<String, dynamic>>(
+        '/items/${item.id}',
+        data: item.toUpdatePayload(),
+      );
+      final payload = response.data;
+      if (payload == null) {
+        throw const ApiException('Empty item response.');
+      }
+      final updated = HomeItem.fromJson(payload);
+      final cachedItems = await _cache.read();
+      await _cache.write([
+        for (final cachedItem in cachedItems)
+          if (cachedItem.id == updated.id) updated else cachedItem,
+      ]);
+      return updated;
+    } on DioException catch (exception) {
+      throw ApiException.fromDio(exception);
+    }
+  }
+
+  @override
+  Future<void> archiveItem(String itemId) async {
+    try {
+      await _client.delete<void>('/items/$itemId');
+      final cachedItems = await _cache.read();
+      await _cache.write(cachedItems.where((item) => item.id != itemId).toList(growable: false));
+    } on DioException catch (exception) {
+      throw ApiException.fromDio(exception);
+    }
+  }
 }
 
 class MockHomeItemRepository implements HomeItemRepository {
@@ -71,13 +107,17 @@ class MockHomeItemRepository implements HomeItemRepository {
             name: 'Wi-Fi router',
             category: 'electronics',
             location: 'Living room',
+            serialNumber: 'RT-AX58U-DEMO',
+            purchaseDate: DateTime.now().subtract(const Duration(days: 150)),
             warrantyExpiresAt: DateTime.now().add(const Duration(days: 30)),
+            notes: 'Restart it after a firmware update.',
           ),
           HomeItem(
             id: 'demo-washer',
             name: 'Washing machine',
             category: 'appliance',
             location: 'Bathroom',
+            purchaseDate: DateTime.now().subtract(const Duration(days: 420)),
             warrantyExpiresAt: DateTime.now().add(const Duration(days: 310)),
           ),
         ];
@@ -91,6 +131,24 @@ class MockHomeItemRepository implements HomeItemRepository {
   Future<HomeItem> createItem(HomeItem item) async {
     _items.insert(0, item);
     return item;
+  }
+
+  @override
+  Future<HomeItem> updateItem(HomeItem item) async {
+    final index = _items.indexWhere((existing) => existing.id == item.id);
+    if (index == -1) {
+      throw const ApiException('Item was not found.');
+    }
+    _items[index] = item;
+    return item;
+  }
+
+  @override
+  Future<void> archiveItem(String itemId) async {
+    final removed = _items.removeWhere((item) => item.id == itemId);
+    if (removed == 0) {
+      throw const ApiException('Item was not found.');
+    }
   }
 }
 
