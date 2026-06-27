@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.api.dependencies import CurrentUser, DbSession
 from app.api.routes.items import _default_household, _owned_item
@@ -13,7 +14,11 @@ router = APIRouter(prefix="/maintenance", tags=["maintenance"])
 
 
 def _owned_task(session: DbSession, user_id: str, task_id: str) -> MaintenanceTask:
-    task = session.get(MaintenanceTask, task_id)
+    task = session.scalar(
+        select(MaintenanceTask)
+        .options(selectinload(MaintenanceTask.item), selectinload(MaintenanceTask.household))
+        .where(MaintenanceTask.id == task_id)
+    )
     if task is None or task.household.owner_id != user_id:
         raise HTTPException(status_code=404, detail={"code": "task_not_found", "message": "Task was not found."})
     return task
@@ -27,7 +32,14 @@ def list_tasks(
     page_size: int = Query(default=30, ge=1, le=100),
 ) -> Page[MaintenanceTaskResponse]:
     household = _default_household(session, user.id)
-    statement = select(MaintenanceTask).where(MaintenanceTask.household_id == household.id).order_by(MaintenanceTask.next_due_date.asc()).offset((page - 1) * page_size).limit(page_size)
+    statement = (
+        select(MaintenanceTask)
+        .options(selectinload(MaintenanceTask.item))
+        .where(MaintenanceTask.household_id == household.id)
+        .order_by(MaintenanceTask.next_due_date.asc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
     tasks = list(session.scalars(statement))
     total = len(list(session.scalars(select(MaintenanceTask.id).where(MaintenanceTask.household_id == household.id))))
     return Page[MaintenanceTaskResponse](items=tasks, page=page, page_size=page_size, total=total)
@@ -43,6 +55,7 @@ def create_task(payload: MaintenanceTaskCreate, session: DbSession, user: Curren
     session.add(task)
     session.commit()
     session.refresh(task)
+    task.item = item
     return task
 
 
