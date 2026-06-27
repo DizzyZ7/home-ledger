@@ -42,12 +42,21 @@ class RemoteHomeItemRepository implements HomeItemRepository {
   @override
   Future<HomeItem> createItem(HomeItem item) async {
     try {
-      final response = await _client.post<Map<String, dynamic>>('/items', data: item.toJson());
+      final response = await _client.post<Map<String, dynamic>>(
+        '/items',
+        data: item.toCreatePayload(),
+      );
       final payload = response.data;
       if (payload == null) {
         throw const ApiException('Empty item response.');
       }
-      return HomeItem.fromJson(payload);
+      final created = HomeItem.fromJson(payload);
+      final cachedItems = await _cache.read();
+      await _cache.write([
+        created,
+        ...cachedItems.where((cachedItem) => cachedItem.id != created.id),
+      ]);
+      return created;
     } on DioException catch (exception) {
       throw ApiException.fromDio(exception);
     }
