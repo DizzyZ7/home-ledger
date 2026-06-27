@@ -48,6 +48,26 @@ class HomeItem {
         'notes': notes,
       };
 
+  Map<String, dynamic> toCreatePayload() => {
+        'name': name,
+        'category': category,
+        'location': location,
+        'serial_number': serialNumber,
+        'purchase_date': _dateOnly(purchaseDate),
+        'warranty_expires_at': _dateOnly(warrantyExpiresAt),
+        'notes': notes,
+      };
+
+  static String? _dateOnly(DateTime? value) {
+    if (value == null) {
+      return null;
+    }
+    final local = value.toLocal();
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    return '${local.year}-$month-$day';
+  }
+
   HomeItem copyWith({
     String? id,
     String? name,
