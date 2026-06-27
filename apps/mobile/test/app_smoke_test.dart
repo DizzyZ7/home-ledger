@@ -16,4 +16,15 @@ void main() {
     expect(find.text('Clean the washing machine filter'), findsOneWidget);
     expect(find.text('Review router firmware'), findsOneWidget);
   });
+
+  testWidgets('mock workspace opens an inventory item detail card', (tester) async {
+    await tester.pumpWidget(const ProviderScope(child: HomeLedgerApp()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Wi-Fi router'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Карточка вещи'), findsOneWidget);
+    expect(find.text('RT-AX58U-DEMO'), findsOneWidget);
+  });
 }
