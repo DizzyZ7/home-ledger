@@ -61,6 +61,10 @@ class _ItemFormScreenState extends ConsumerState<ItemFormScreen> {
       }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.itemSaved)));
       Navigator.of(context).pop();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.l10n.errorGeneric)));
+      }
     } finally {
       if (mounted) {
         setState(() => _saving = false);

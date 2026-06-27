@@ -56,12 +56,13 @@ The mobile app follows feature-first Clean Architecture with a presentation/doma
 ### 1. Start with mock data only
 
 ```bash
+make mobile-bootstrap
 cd apps/mobile
 flutter pub get
 flutter run --dart-define=USE_MOCK_DATA=true
 ```
 
-Mock mode is the default, so the mobile app stays usable without Docker, accounts, or API keys.
+`mobile-bootstrap` generates the standard Android and iOS platform shells from the Flutter SDK. The source code, dependencies, app configuration and tests are already versioned; committing the generated shells is recommended before publishing a store build. Mock mode is the default, so the mobile app stays usable without Docker, accounts, or API keys.
 
 ### 2. Start the self-hosted backend
 

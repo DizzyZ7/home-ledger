@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help up down logs api-install api-run api-test api-lint mobile-install mobile-analyze mobile-test seed
+.PHONY: help up down logs api-install api-run api-test api-lint mobile-bootstrap mobile-install mobile-analyze mobile-test seed
 
 help: ## Print available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -26,6 +26,9 @@ api-test: ## Run API tests
 
 api-lint: ## Run API static checks
 	cd services/api && ruff check . && ruff format --check .
+
+mobile-bootstrap: ## Generate Android and iOS platform shells from the installed Flutter SDK
+	cd apps/mobile && flutter create --platforms=android,ios --project-name home_ledger .
 
 mobile-install: ## Fetch Flutter packages
 	cd apps/mobile && flutter pub get

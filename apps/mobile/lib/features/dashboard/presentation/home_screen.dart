@@ -117,13 +117,14 @@ class _ItemTile extends StatelessWidget {
     final warrantyText = item.warrantyExpiresAt == null
         ? l10n.noWarranty
         : l10n.warrantyDate(DateFormat.yMMMd(locale).format(item.warrantyExpiresAt!));
+    final avatarText = item.name.isEmpty ? '?' : item.name.substring(0, 1).toUpperCase();
 
     return Semantics(
       label: '${item.name}. $warrantyText',
       child: Card(
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          leading: CircleAvatar(child: Text(item.name.characters.first.toUpperCase())),
+          leading: CircleAvatar(child: Text(avatarText)),
           title: Text(item.name),
           subtitle: Text([if (item.location != null) item.location!, warrantyText].join(' · ')),
           trailing: const Icon(Icons.chevron_right),
