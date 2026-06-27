@@ -13,6 +13,7 @@ import 'features/items/domain/home_item.dart';
 import 'features/items/presentation/archived_items_screen.dart';
 import 'features/items/presentation/item_detail_screen.dart';
 import 'features/items/presentation/item_form_screen.dart';
+import 'features/items/presentation/warranty_screen.dart';
 import 'features/maintenance/domain/maintenance_task.dart';
 import 'features/maintenance/presentation/maintenance_form_screen.dart';
 import 'features/maintenance/presentation/maintenance_screen.dart';
@@ -51,6 +52,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 },
               ),
             ],
+          ),
+          GoRoute(
+            path: 'warranties',
+            builder: (context, state) => const WarrantyScreen(),
           ),
           GoRoute(
             path: 'maintenance/new',
