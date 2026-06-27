@@ -8,7 +8,7 @@ import 'core/localization/app_localizations.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/auth_screen.dart';
 import 'features/auth/presentation/session_controller.dart';
-import 'features/dashboard/presentation/home_screen.dart';
+import 'features/dashboard/presentation/dashboard_shell.dart';
 import 'features/items/presentation/item_form_screen.dart';
 import 'features/maintenance/presentation/maintenance_screen.dart';
 
@@ -77,7 +77,7 @@ class SessionGate extends ConsumerWidget {
         if (value == null) {
           return AuthScreen(showMockHint: config.useMockData);
         }
-        return const HomeScreen();
+        return const DashboardShell();
       },
     );
   }
