@@ -22,3 +22,7 @@ class MaintenanceTask(TimestampMixin, Base):
 
     household = relationship("Household", back_populates="maintenance_tasks")
     item = relationship("HomeItem", back_populates="maintenance_tasks")
+
+    @property
+    def item_name(self) -> str:
+        return self.item.name
