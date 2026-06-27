@@ -9,9 +9,11 @@ import 'maintenance_list_controller.dart';
 import 'maintenance_localizations.dart';
 
 class MaintenanceFormScreen extends ConsumerStatefulWidget {
-  const MaintenanceFormScreen({this.task, super.key});
+  const MaintenanceFormScreen({this.task, this.initialItem, super.key})
+      : assert(task == null || initialItem == null);
 
   final MaintenanceTask? task;
+  final HomeItem? initialItem;
 
   @override
   ConsumerState<MaintenanceFormScreen> createState() => _MaintenanceFormScreenState();
@@ -27,12 +29,14 @@ class _MaintenanceFormScreenState extends ConsumerState<MaintenanceFormScreen> {
   bool _saving = false;
 
   bool get _isEditing => widget.task != null;
+  bool get _itemLocked => _isEditing || widget.initialItem != null;
 
   @override
   void initState() {
     super.initState();
     final task = widget.task;
     if (task == null) {
+      _itemId = widget.initialItem?.id;
       return;
     }
     _itemId = task.itemId;
@@ -62,7 +66,7 @@ class _MaintenanceFormScreenState extends ConsumerState<MaintenanceFormScreen> {
     }
   }
 
-  Future<void> _save({String? fallbackItemId}) async {
+  Future<void> _save({String? fallbackItemId, String? selectedItemName}) async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -76,6 +80,7 @@ class _MaintenanceFormScreenState extends ConsumerState<MaintenanceFormScreen> {
       final task = MaintenanceTask(
         id: widget.task?.id ?? DateTime.now().microsecondsSinceEpoch.toString(),
         itemId: itemId,
+        itemName: widget.task?.itemName ?? selectedItemName,
         title: _titleController.text.trim(),
         notes: _optional(_notesController.text),
         frequencyDays: int.parse(_frequencyController.text.trim()),
@@ -119,12 +124,14 @@ class _MaintenanceFormScreenState extends ConsumerState<MaintenanceFormScreen> {
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (_, __) => _MaintenanceFormError(onBack: () => Navigator.of(context).pop()),
       data: (data) {
-        if (data.isEmpty && !_isEditing) {
+        if (data.isEmpty && !_isEditing && widget.initialItem == null) {
           return const _NoItemsForMaintenance();
         }
 
         final selectedItemId = widget.task?.itemId ?? _itemId ?? data.first.id;
-        String selectedItemName = selectedItemId;
+        var selectedItemName = widget.initialItem?.id == selectedItemId
+            ? widget.initialItem!.name
+            : selectedItemId;
         for (final item in data) {
           if (item.id == selectedItemId) {
             selectedItemName = item.name;
@@ -136,6 +143,7 @@ class _MaintenanceFormScreenState extends ConsumerState<MaintenanceFormScreen> {
           formKey: _formKey,
           items: data,
           isEditing: _isEditing,
+          itemLocked: _itemLocked,
           selectedItemId: selectedItemId,
           selectedItemName: selectedItemName,
           titleController: _titleController,
@@ -143,9 +151,12 @@ class _MaintenanceFormScreenState extends ConsumerState<MaintenanceFormScreen> {
           notesController: _notesController,
           nextDueDate: _nextDueDate,
           saving: _saving,
-          onItemChanged: _isEditing ? null : (value) => setState(() => _itemId = value),
+          onItemChanged: _itemLocked ? null : (value) => setState(() => _itemId = value),
           onPickDueDate: _pickDueDate,
-          onSave: () => _save(fallbackItemId: data.isEmpty ? null : data.first.id),
+          onSave: () => _save(
+            fallbackItemId: data.isEmpty ? null : data.first.id,
+            selectedItemName: selectedItemName,
+          ),
         );
       },
     );
@@ -157,6 +168,7 @@ class _MaintenanceTaskForm extends StatelessWidget {
     required this.formKey,
     required this.items,
     required this.isEditing,
+    required this.itemLocked,
     required this.selectedItemId,
     required this.selectedItemName,
     required this.titleController,
@@ -172,6 +184,7 @@ class _MaintenanceTaskForm extends StatelessWidget {
   final GlobalKey<FormState> formKey;
   final List<HomeItem> items;
   final bool isEditing;
+  final bool itemLocked;
   final String selectedItemId;
   final String selectedItemName;
   final TextEditingController titleController;
@@ -196,7 +209,7 @@ class _MaintenanceTaskForm extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              if (isEditing)
+              if (itemLocked)
                 InputDecorator(
                   decoration: InputDecoration(labelText: l10n.selectItem),
                   child: Text(selectedItemName),
