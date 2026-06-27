@@ -89,6 +89,7 @@ class MockMaintenanceRepository implements MaintenanceRepository {
           MaintenanceTask(
             id: 'demo-clean-filter',
             itemId: 'demo-washer',
+            itemName: 'Washing machine',
             title: 'Clean the washing machine filter',
             frequencyDays: 90,
             nextDueDate: DateTime.now().subtract(const Duration(days: 2)),
@@ -96,6 +97,7 @@ class MockMaintenanceRepository implements MaintenanceRepository {
           MaintenanceTask(
             id: 'demo-router-restart',
             itemId: 'demo-router',
+            itemName: 'Wi-Fi router',
             title: 'Review router firmware',
             frequencyDays: 180,
             nextDueDate: DateTime.now().add(const Duration(days: 12)),
