@@ -27,17 +27,9 @@ def list_tasks(
     page_size: int = Query(default=30, ge=1, le=100),
 ) -> Page[MaintenanceTaskResponse]:
     household = _default_household(session, user.id)
-    statement = (
-        select(MaintenanceTask)
-        .where(MaintenanceTask.household_id == household.id)
-        .order_by(MaintenanceTask.next_due_date.asc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    )
+    statement = select(MaintenanceTask).where(MaintenanceTask.household_id == household.id).order_by(MaintenanceTask.next_due_date.asc()).offset((page - 1) * page_size).limit(page_size)
     tasks = list(session.scalars(statement))
-    total = len(
-        list(session.scalars(select(MaintenanceTask.id).where(MaintenanceTask.household_id == household.id)))
-    )
+    total = len(list(session.scalars(select(MaintenanceTask.id).where(MaintenanceTask.household_id == household.id))))
     return Page[MaintenanceTaskResponse](items=tasks, page=page, page_size=page_size, total=total)
 
 
