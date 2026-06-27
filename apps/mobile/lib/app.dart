@@ -9,6 +9,8 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/auth_screen.dart';
 import 'features/auth/presentation/session_controller.dart';
 import 'features/dashboard/presentation/dashboard_shell.dart';
+import 'features/items/presentation/item_detail_screen.dart';
+import 'features/items/presentation/item_edit_screen.dart';
 import 'features/items/presentation/item_form_screen.dart';
 import 'features/maintenance/presentation/maintenance_screen.dart';
 
@@ -24,6 +26,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'items/new',
             builder: (context, state) => const ItemFormScreen(),
+          ),
+          GoRoute(
+            path: 'items/:itemId',
+            builder: (context, state) => ItemDetailScreen(
+              itemId: state.pathParameters['itemId']!,
+            ),
+            routes: [
+              GoRoute(
+                path: 'edit',
+                builder: (context, state) => ItemEditScreen(
+                  itemId: state.pathParameters['itemId']!,
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: 'maintenance',
