@@ -93,11 +93,12 @@ class _MaintenanceTaskTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final dueText = _dueText(context, task.nextDueDate);
+    final itemContext = task.itemName == null ? null : l10n.itemContext(task.itemName!);
     final isOverdue = DateUtils.dateOnly(task.nextDueDate).isBefore(DateUtils.dateOnly(DateTime.now()));
     final colorScheme = Theme.of(context).colorScheme;
 
     return Semantics(
-      label: '${task.title}. $dueText',
+      label: [task.title, if (itemContext != null) itemContext, dueText].join('. '),
       child: Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -117,6 +118,10 @@ class _MaintenanceTaskTile extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(task.title, style: Theme.of(context).textTheme.titleMedium),
+                        if (itemContext != null) ...[
+                          const SizedBox(height: 4),
+                          Text(itemContext, style: Theme.of(context).textTheme.bodyMedium),
+                        ],
                         const SizedBox(height: 4),
                         Text(
                           dueText,
