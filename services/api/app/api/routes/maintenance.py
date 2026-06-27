@@ -16,7 +16,10 @@ router = APIRouter(prefix="/maintenance", tags=["maintenance"])
 def _owned_task(session: DbSession, user_id: str, task_id: str) -> MaintenanceTask:
     task = session.scalar(
         select(MaintenanceTask)
-        .options(selectinload(MaintenanceTask.item), selectinload(MaintenanceTask.household))
+        .options(
+            selectinload(MaintenanceTask.item),
+            selectinload(MaintenanceTask.household),
+        )
         .where(MaintenanceTask.id == task_id)
     )
     if task is None or task.household.owner_id != user_id:
