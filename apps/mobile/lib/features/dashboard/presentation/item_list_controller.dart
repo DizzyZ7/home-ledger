@@ -37,4 +37,12 @@ class ItemListController extends AsyncNotifier<List<HomeItem>> {
     final current = state.valueOrNull ?? const <HomeItem>[];
     state = AsyncData(current.where((item) => item.id != itemId).toList(growable: false));
   }
+
+  void addRestoredItem(HomeItem item) {
+    final current = state.valueOrNull ?? const <HomeItem>[];
+    state = AsyncData([
+      item,
+      ...current.where((existing) => existing.id != item.id),
+    ]);
+  }
 }
