@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
+import '../../items/presentation/warranty_localizations.dart';
+import '../../items/presentation/warranty_screen.dart';
 import '../../maintenance/presentation/maintenance_hub_screen.dart';
 import '../../maintenance/presentation/maintenance_localizations.dart';
 import 'home_screen.dart';
@@ -21,7 +23,7 @@ class _DashboardShellState extends State<DashboardShell> {
     return Scaffold(
       body: IndexedStack(
         index: _selectedIndex,
-        children: const [HomeScreen(), MaintenanceHubScreen()],
+        children: const [HomeScreen(), WarrantyScreen(), MaintenanceHubScreen()],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
@@ -31,6 +33,11 @@ class _DashboardShellState extends State<DashboardShell> {
             icon: const Icon(Icons.inventory_2_outlined),
             selectedIcon: const Icon(Icons.inventory_2),
             label: l10n.inventory,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.verified_user_outlined),
+            selectedIcon: const Icon(Icons.verified_user),
+            label: l10n.warranties,
           ),
           NavigationDestination(
             icon: const Icon(Icons.build_outlined),
