@@ -1,7 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 
 from app.api.dependencies import CurrentUser, DbSession
@@ -33,18 +33,24 @@ def list_tasks(
     user: CurrentUser,
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=30, ge=1, le=100),
+    item_id: str | None = Query(default=None, min_length=1, max_length=36),
 ) -> Page[MaintenanceTaskResponse]:
     household = _default_household(session, user.id)
+    filters = [MaintenanceTask.household_id == household.id]
+    if item_id is not None:
+        filters.append(MaintenanceTask.item_id == item_id)
+
     statement = (
         select(MaintenanceTask)
         .options(selectinload(MaintenanceTask.item))
-        .where(MaintenanceTask.household_id == household.id)
+        .where(*filters)
         .order_by(MaintenanceTask.next_due_date.asc())
         .offset((page - 1) * page_size)
         .limit(page_size)
     )
+    total_statement = select(func.count()).select_from(MaintenanceTask).where(*filters)
     tasks = list(session.scalars(statement))
-    total = len(list(session.scalars(select(MaintenanceTask.id).where(MaintenanceTask.household_id == household.id))))
+    total = session.scalar(total_statement) or 0
     return Page[MaintenanceTaskResponse](items=tasks, page=page, page_size=page_size, total=total)
 
 
