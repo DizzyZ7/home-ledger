@@ -36,7 +36,7 @@ def list_items(
     page_size: int = Query(default=30, ge=1, le=100),
     query: str | None = Query(default=None, min_length=1, max_length=120),
     archived: bool = Query(default=False),
-    warranty_state: WarrantyState | None = Query(default=None),
+    warranty_state: WarrantyState | None = None,
     warranty_window_days: int = Query(default=45, ge=1, le=3650),
 ) -> Page[ItemResponse]:
     household = _default_household(session, user.id)
