@@ -120,9 +120,11 @@ class _ItemTile extends StatelessWidget {
     final avatarText = item.name.isEmpty ? '?' : item.name.substring(0, 1).toUpperCase();
 
     return Semantics(
+      button: true,
       label: '${item.name}. $warrantyText',
       child: Card(
         child: ListTile(
+          onTap: () => context.push('/items/${item.id}'),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           leading: CircleAvatar(child: Text(avatarText)),
           title: Text(item.name),
