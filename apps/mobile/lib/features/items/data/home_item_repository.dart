@@ -14,7 +14,10 @@ abstract class HomeItemRepository {
   Future<List<HomeItem>> loadWarrantyItems({
     required WarrantyState state,
     int windowDays = 45,
-  });
+  }) async {
+    return filterWarrantyItems(await loadItems(), state: state, windowDays: windowDays);
+  }
+
   Future<HomeItem> createItem(HomeItem item);
   Future<HomeItem> updateItem(HomeItem item);
   Future<void> archiveItem(String itemId);
