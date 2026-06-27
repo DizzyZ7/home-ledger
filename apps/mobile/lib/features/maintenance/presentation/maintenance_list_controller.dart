@@ -23,6 +23,15 @@ class MaintenanceListController extends AsyncNotifier<List<MaintenanceTask>> {
     );
   }
 
+  Future<void> createTask(MaintenanceTask task) async {
+    final created = await ref.read(maintenanceRepositoryProvider).createTask(task);
+    final current = state.valueOrNull ?? const <MaintenanceTask>[];
+    final updated = [...current, created]..sort(
+        (left, right) => left.nextDueDate.compareTo(right.nextDueDate),
+      );
+    state = AsyncData(updated);
+  }
+
   Future<void> completeTask(String taskId) async {
     final completed = await ref.read(maintenanceRepositoryProvider).completeTask(taskId);
     final current = state.valueOrNull ?? const <MaintenanceTask>[];

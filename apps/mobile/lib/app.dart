@@ -12,6 +12,7 @@ import 'features/dashboard/presentation/dashboard_shell.dart';
 import 'features/items/domain/home_item.dart';
 import 'features/items/presentation/item_detail_screen.dart';
 import 'features/items/presentation/item_form_screen.dart';
+import 'features/maintenance/presentation/maintenance_form_screen.dart';
 import 'features/maintenance/presentation/maintenance_screen.dart';
 
 final localeProvider = StateProvider<Locale>((ref) => const Locale('ru'));
@@ -44,6 +45,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 },
               ),
             ],
+          ),
+          GoRoute(
+            path: 'maintenance/new',
+            builder: (context, state) => const MaintenanceFormScreen(),
           ),
           GoRoute(
             path: 'maintenance',

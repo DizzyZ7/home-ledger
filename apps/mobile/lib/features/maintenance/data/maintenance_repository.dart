@@ -5,9 +5,11 @@ import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
 import '../domain/maintenance_task.dart';
+import 'maintenance_task_payload.dart';
 
 abstract class MaintenanceRepository {
   Future<List<MaintenanceTask>> loadTasks();
+  Future<MaintenanceTask> createTask(MaintenanceTask task);
   Future<MaintenanceTask> completeTask(String taskId);
 }
 
@@ -26,6 +28,23 @@ class RemoteMaintenanceRepository implements MaintenanceRepository {
           .whereType<Map<String, dynamic>>()
           .map(MaintenanceTask.fromJson)
           .toList(growable: false);
+    } on DioException catch (exception) {
+      throw ApiException.fromDio(exception);
+    }
+  }
+
+  @override
+  Future<MaintenanceTask> createTask(MaintenanceTask task) async {
+    try {
+      final response = await _client.post<Map<String, dynamic>>(
+        '/maintenance',
+        data: task.toCreatePayload(),
+      );
+      final payload = response.data;
+      if (payload == null) {
+        throw const ApiException('Empty maintenance response.');
+      }
+      return MaintenanceTask.fromJson(payload);
     } on DioException catch (exception) {
       throw ApiException.fromDio(exception);
     }
@@ -71,6 +90,12 @@ class MockMaintenanceRepository implements MaintenanceRepository {
   Future<List<MaintenanceTask>> loadTasks() async {
     _tasks.sort((left, right) => left.nextDueDate.compareTo(right.nextDueDate));
     return List.unmodifiable(_tasks);
+  }
+
+  @override
+  Future<MaintenanceTask> createTask(MaintenanceTask task) async {
+    _tasks.add(task);
+    return task;
   }
 
   @override
