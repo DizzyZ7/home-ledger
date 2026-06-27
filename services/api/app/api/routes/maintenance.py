@@ -58,14 +58,10 @@ def list_tasks(
     total_statement = select(func.count()).select_from(MaintenanceTask).where(*filters)
     tasks = list(session.scalars(statement))
     total = session.scalar(total_statement) or 0
-    return Page[MaintenanceTaskResponse](
-        items=tasks, page=page, page_size=page_size, total=total
-    )
+    return Page[MaintenanceTaskResponse](items=tasks, page=page, page_size=page_size, total=total)
 
 
-@router.post(
-    "", response_model=MaintenanceTaskResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("", response_model=MaintenanceTaskResponse, status_code=status.HTTP_201_CREATED)
 def create_task(
     payload: MaintenanceTaskCreate, session: DbSession, user: CurrentUser
 ) -> MaintenanceTask:
@@ -100,9 +96,7 @@ def update_task(
 
 
 @router.post("/{task_id}/complete", response_model=MaintenanceTaskResponse)
-def complete_task(
-    task_id: str, session: DbSession, user: CurrentUser
-) -> MaintenanceTask:
+def complete_task(task_id: str, session: DbSession, user: CurrentUser) -> MaintenanceTask:
     task = _owned_task(session, user.id, task_id)
     task.completed_at = datetime.now(UTC)
     task.next_due_date = task.next_due_date + timedelta(days=task.frequency_days)
