@@ -327,7 +327,7 @@ class _UnavailableItemState extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(
-            mainAxisSize: MainAxis.min,
+            mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.inventory_2_outlined, size: 48),
               const SizedBox(height: 16),
