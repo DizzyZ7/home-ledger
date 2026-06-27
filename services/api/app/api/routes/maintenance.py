@@ -47,14 +47,7 @@ def list_tasks(
     if item_id is not None:
         filters.append(MaintenanceTask.item_id == item_id)
 
-    statement = (
-        select(MaintenanceTask)
-        .options(selectinload(MaintenanceTask.item))
-        .where(*filters)
-        .order_by(MaintenanceTask.next_due_date.asc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    )
+    statement = select(MaintenanceTask).options(selectinload(MaintenanceTask.item)).where(*filters).order_by(MaintenanceTask.next_due_date.asc()).offset((page - 1) * page_size).limit(page_size)
     total_statement = select(func.count()).select_from(MaintenanceTask).where(*filters)
     tasks = list(session.scalars(statement))
     total = session.scalar(total_statement) or 0
@@ -62,9 +55,7 @@ def list_tasks(
 
 
 @router.post("", response_model=MaintenanceTaskResponse, status_code=status.HTTP_201_CREATED)
-def create_task(
-    payload: MaintenanceTaskCreate, session: DbSession, user: CurrentUser
-) -> MaintenanceTask:
+def create_task(payload: MaintenanceTaskCreate, session: DbSession, user: CurrentUser) -> MaintenanceTask:
     household = _default_household(session, user.id)
     item = _owned_item(session, user.id, payload.item_id)
     if item.household_id != household.id:
