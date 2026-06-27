@@ -26,6 +26,7 @@ extension MaintenanceLocalizations on AppLocalizations {
       : 'Add a task to an item so regular care is never forgotten.';
   String get dueToday => _isRussian ? 'Нужно выполнить сегодня' : 'Due today';
 
+  String itemContext(String itemName) => _isRussian ? 'Вещь: $itemName' : 'Item: $itemName';
   String dueInDays(int days) => _isRussian ? 'Через $days дн.' : 'Due in $days days';
   String overdueBy(int days) => _isRussian ? 'Просрочено на $days дн.' : '$days days overdue';
 }
