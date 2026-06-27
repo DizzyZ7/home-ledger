@@ -15,6 +15,8 @@ class User(TimestampMixin, Base):
     display_name: Mapped[str] = mapped_column(String(80), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
 
-    households: Mapped[list["Household"]] = relationship(
-        back_populates="owner", cascade="all, delete-orphan"
+    households = relationship(
+        "Household",
+        back_populates="owner",
+        cascade="all, delete-orphan",
     )
