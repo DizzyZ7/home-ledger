@@ -7,11 +7,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 COPY pyproject.toml ./
+COPY app ./app
 RUN python -m pip install --upgrade pip && python -m pip install .
 
 COPY alembic.ini ./
 COPY alembic ./alembic
-COPY app ./app
 
 EXPOSE 8000
 

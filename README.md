@@ -12,17 +12,17 @@ Household information usually fragments across paper receipts, chat messages, ph
 
 ## MVP
 
-- Add, view, edit, and archive household items.
+- Add, view, edit, and archive household items through the REST API.
 - Keep warranty expiry, purchase date, serial number, location, and notes.
-- Track upcoming recurring maintenance tasks.
-- See items that need attention soon.
+- Track recurring maintenance tasks through the REST API.
+- See expiring-warranty attention indicators in the mobile dashboard.
 - Work in a mock-first mobile mode without starting backend services.
-- Use a self-hosted FastAPI + PostgreSQL backend when synchronization is needed.
+- Use a self-hosted FastAPI + PostgreSQL backend with registration and sign-in.
 - Use Russian and English UI strings with system light/dark theme support.
 
 ## Screenshots
 
-> Add real screenshots under `docs/images/` and replace these placeholders before the first public release.
+> Add real, redacted screenshots under `docs/images/` and replace these placeholders before the first public release.
 
 | Dashboard | Item editor | Maintenance |
 | --- | --- | --- |
@@ -49,7 +49,7 @@ docs              Product, architectural and release documentation
 .github           CI, issue templates and pull request guidance
 ```
 
-The mobile app follows feature-first Clean Architecture with a presentation/domain/data split. The API is layered into routes, services, repositories, models and infrastructure. See [docs/architecture.md](docs/architecture.md).
+The mobile app follows feature-first Clean Architecture with a presentation/domain/data split. The API is layered into routes, services, models and infrastructure. See [docs/architecture.md](docs/architecture.md).
 
 ## Quick start
 
@@ -72,6 +72,14 @@ docker compose up --build
 ```
 
 Open API docs at `http://localhost:8000/docs` and health status at `http://localhost:8000/health`.
+
+Optional safe demo data:
+
+```bash
+docker compose exec api python -m app.scripts.seed
+```
+
+This creates only synthetic local data: `demo@homeledger.local` and a deliberately non-production password printed in the command output.
 
 ### 3. Connect Flutter to local API
 
@@ -110,8 +118,9 @@ Use `.env.example` as the only template. Do not commit `.env`, access tokens, pa
 ## Roadmap
 
 - [x] Public architecture and self-hosted development environment
-- [ ] Item, warranty, and maintenance API
-- [ ] Flutter dashboard and mock-first experience
+- [x] Authenticated item and maintenance REST API
+- [x] Flutter dashboard, mock mode, local cache and sign-in foundation
+- [ ] Item details, item edit and archive UX in mobile client
 - [ ] Receipt photo attachments through a pluggable local storage adapter
 - [ ] Household invitations and per-household roles
 - [ ] Widgets and maintenance reminders
@@ -119,15 +128,15 @@ Use `.env.example` as the only template. Do not commit `.env`, access tokens, pa
 
 ## Contributing
 
-Contributions are welcome once the first public MVP is merged. Read [CONTRIBUTING.md](CONTRIBUTING.md), follow the [Code of Conduct](CODE_OF_CONDUCT.md), and use the included issue and pull request templates.
-
-## Security
-
-Report vulnerabilities privately using the process in [SECURITY.md](SECURITY.md). Do not publish secrets or a proof of concept that exposes real user data.
+Read [CONTRIBUTING.md](CONTRIBUTING.md), follow the [Code of Conduct](CODE_OF_CONDUCT.md), and use the included issue and pull request templates.
 
 ## License
 
 HomeLedger is released under the [MIT License](LICENSE).
+
+## Security
+
+Report vulnerabilities privately using the process in [SECURITY.md](SECURITY.md). Do not publish secrets or a proof of concept that exposes real user data.
 
 ## Author
 

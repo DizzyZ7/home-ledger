@@ -19,7 +19,6 @@ htmlcov/
 .pub/
 build/
 coverage/
-*.lock
 
 # Mobile platform artifacts
 apps/mobile/android/.gradle/
