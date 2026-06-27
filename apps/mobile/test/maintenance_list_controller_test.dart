@@ -5,18 +5,26 @@ import 'package:home_ledger/features/maintenance/domain/maintenance_task.dart';
 import 'package:home_ledger/features/maintenance/presentation/maintenance_list_controller.dart';
 
 class FakeMaintenanceRepository implements MaintenanceRepository {
-  FakeMaintenanceRepository(this._task);
+  FakeMaintenanceRepository(this._tasks);
 
-  MaintenanceTask _task;
+  final List<MaintenanceTask> _tasks;
 
   @override
   Future<MaintenanceTask> completeTask(String taskId) async {
-    _task = _task.markCompleted(DateTime(2026, 6, 27));
-    return _task;
+    final index = _tasks.indexWhere((task) => task.id == taskId);
+    final completed = _tasks[index].markCompleted(DateTime(2026, 6, 27));
+    _tasks[index] = completed;
+    return completed;
   }
 
   @override
-  Future<List<MaintenanceTask>> loadTasks() async => [_task];
+  Future<MaintenanceTask> createTask(MaintenanceTask task) async {
+    _tasks.add(task);
+    return task;
+  }
+
+  @override
+  Future<List<MaintenanceTask>> loadTasks() async => List.unmodifiable(_tasks);
 }
 
 void main() {
@@ -29,7 +37,7 @@ void main() {
       nextDueDate: DateTime(2026, 6, 20),
     );
     final container = ProviderContainer(
-      overrides: [maintenanceRepositoryProvider.overrideWithValue(FakeMaintenanceRepository(task))],
+      overrides: [maintenanceRepositoryProvider.overrideWithValue(FakeMaintenanceRepository([task]))],
     );
     addTearDown(container.dispose);
 
@@ -41,5 +49,32 @@ void main() {
     final completed = container.read(maintenanceListControllerProvider).valueOrNull!.single;
     expect(completed.nextDueDate, DateTime(2026, 9, 18));
     expect(completed.completedAt, DateTime(2026, 6, 27));
+  });
+
+  test('creation inserts a task in next due date order', () async {
+    final existing = MaintenanceTask(
+      id: 'later',
+      itemId: 'router',
+      title: 'Review firmware',
+      frequencyDays: 180,
+      nextDueDate: DateTime(2026, 9, 1),
+    );
+    final created = MaintenanceTask(
+      id: 'earlier',
+      itemId: 'washer',
+      title: 'Clean filter',
+      frequencyDays: 90,
+      nextDueDate: DateTime(2026, 7, 1),
+    );
+    final container = ProviderContainer(
+      overrides: [maintenanceRepositoryProvider.overrideWithValue(FakeMaintenanceRepository([existing]))],
+    );
+    addTearDown(container.dispose);
+
+    await container.read(maintenanceListControllerProvider.future);
+    await container.read(maintenanceListControllerProvider.notifier).createTask(created);
+
+    final tasks = container.read(maintenanceListControllerProvider).valueOrNull!;
+    expect(tasks.map((task) => task.id), ['earlier', 'later']);
   });
 }
