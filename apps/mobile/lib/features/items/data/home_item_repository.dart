@@ -9,9 +9,11 @@ import 'home_item_cache.dart';
 
 abstract class HomeItemRepository {
   Future<List<HomeItem>> loadItems();
+  Future<List<HomeItem>> loadArchivedItems();
   Future<HomeItem> createItem(HomeItem item);
   Future<HomeItem> updateItem(HomeItem item);
   Future<void> archiveItem(String itemId);
+  Future<HomeItem> restoreItem(String itemId);
 }
 
 class RemoteHomeItemRepository implements HomeItemRepository {
@@ -37,6 +39,24 @@ class RemoteHomeItemRepository implements HomeItemRepository {
       if (cached.isNotEmpty) {
         return cached;
       }
+      throw ApiException.fromDio(exception);
+    }
+  }
+
+  @override
+  Future<List<HomeItem>> loadArchivedItems() async {
+    try {
+      final response = await _client.get<Map<String, dynamic>>(
+        '/items',
+        queryParameters: const {'archived': true},
+      );
+      final payload = response.data;
+      final itemsRaw = payload?['items'] as List<dynamic>? ?? const [];
+      return itemsRaw
+          .whereType<Map<String, dynamic>>()
+          .map(HomeItem.fromJson)
+          .toList(growable: false);
+    } on DioException catch (exception) {
       throw ApiException.fromDio(exception);
     }
   }
@@ -97,6 +117,26 @@ class RemoteHomeItemRepository implements HomeItemRepository {
       throw ApiException.fromDio(exception);
     }
   }
+
+  @override
+  Future<HomeItem> restoreItem(String itemId) async {
+    try {
+      final response = await _client.post<Map<String, dynamic>>('/items/$itemId/restore');
+      final payload = response.data;
+      if (payload == null) {
+        throw const ApiException('Empty item response.');
+      }
+      final restored = HomeItem.fromJson(payload);
+      final cachedItems = await _cache.read();
+      await _cache.write([
+        restored,
+        ...cachedItems.where((item) => item.id != restored.id),
+      ]);
+      return restored;
+    } on DioException catch (exception) {
+      throw ApiException.fromDio(exception);
+    }
+  }
 }
 
 class MockHomeItemRepository implements HomeItemRepository {
@@ -119,9 +159,13 @@ class MockHomeItemRepository implements HomeItemRepository {
         ];
 
   final List<HomeItem> _items;
+  final List<HomeItem> _archivedItems = [];
 
   @override
   Future<List<HomeItem>> loadItems() async => List.unmodifiable(_items);
+
+  @override
+  Future<List<HomeItem>> loadArchivedItems() async => List.unmodifiable(_archivedItems);
 
   @override
   Future<HomeItem> createItem(HomeItem item) async {
@@ -145,7 +189,18 @@ class MockHomeItemRepository implements HomeItemRepository {
     if (index == -1) {
       throw const ApiException('Item was not found.');
     }
-    _items.removeAt(index);
+    _archivedItems.insert(0, _items.removeAt(index));
+  }
+
+  @override
+  Future<HomeItem> restoreItem(String itemId) async {
+    final index = _archivedItems.indexWhere((item) => item.id == itemId);
+    if (index == -1) {
+      throw const ApiException('Item was not found.');
+    }
+    final restored = _archivedItems.removeAt(index);
+    _items.insert(0, restored);
+    return restored;
   }
 }
 
