@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/localization/app_localizations.dart';
 import '../../dashboard/presentation/item_list_controller.dart';
+import '../../maintenance/domain/maintenance_task.dart';
+import '../../maintenance/presentation/item_maintenance_tasks_provider.dart';
+import '../../maintenance/presentation/maintenance_localizations.dart';
 import '../domain/home_item.dart';
 import 'item_localizations.dart';
 
@@ -90,7 +93,7 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
   }
 }
 
-class _ItemDetails extends StatelessWidget {
+class _ItemDetails extends ConsumerWidget {
   const _ItemDetails({
     required this.item,
     required this.archiving,
@@ -101,8 +104,13 @@ class _ItemDetails extends StatelessWidget {
   final bool archiving;
   final VoidCallback onArchive;
 
+  Future<void> _openMaintenanceForm(BuildContext context, WidgetRef ref) async {
+    await context.push('/maintenance/new', extra: item);
+    ref.invalidate(itemMaintenanceTasksProvider(item.id));
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final localizations = MaterialLocalizations.of(context);
     final warranty = item.warrantyExpiresAt == null
@@ -157,9 +165,127 @@ class _ItemDetails extends StatelessWidget {
           _DetailRow(label: l10n.warrantyUntil, value: warranty),
           if (item.notes != null && item.notes!.trim().isNotEmpty)
             _DetailRow(label: l10n.notes, value: item.notes!),
+          const SizedBox(height: 12),
+          _ItemMaintenanceSection(
+            item: item,
+            onAddTask: () => _openMaintenanceForm(context, ref),
+          ),
         ],
       ),
     );
+  }
+}
+
+class _ItemMaintenanceSection extends ConsumerWidget {
+  const _ItemMaintenanceSection({required this.item, required this.onAddTask});
+
+  final HomeItem item;
+  final Future<void> Function() onAddTask;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final tasks = ref.watch(itemMaintenanceTasksProvider(item.id));
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(l10n.maintenance, style: Theme.of(context).textTheme.titleMedium),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    onAddTask();
+                  },
+                  icon: const Icon(Icons.add),
+                  label: Text(l10n.addMaintenance),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            tasks.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: LinearProgressIndicator(),
+              ),
+              error: (_, __) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.errorGeneric),
+                  TextButton(
+                    onPressed: () => ref.invalidate(itemMaintenanceTasksProvider(item.id)),
+                    child: Text(l10n.retry),
+                  ),
+                ],
+              ),
+              data: (data) {
+                if (data.isEmpty) {
+                  return Text(l10n.noMaintenanceForItem);
+                }
+                return Column(
+                  children: [
+                    for (final task in data) _ItemMaintenanceTile(task: task),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ItemMaintenanceTile extends StatelessWidget {
+  const _ItemMaintenanceTile({required this.task});
+
+  final MaintenanceTask task;
+
+  @override
+  Widget build(BuildContext context) {
+    final dueText = _dueText(context, task.nextDueDate);
+    final overdue = DateUtils.dateOnly(task.nextDueDate).isBefore(DateUtils.dateOnly(DateTime.now()));
+
+    return Semantics(
+      label: '${task.title}. $dueText',
+      button: true,
+      child: ListTile(
+        key: ValueKey('item-maintenance-${task.id}'),
+        contentPadding: EdgeInsets.zero,
+        leading: Icon(
+          overdue ? Icons.priority_high_outlined : Icons.build_outlined,
+          color: overdue ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.primary,
+        ),
+        title: Text(task.title),
+        subtitle: Text(
+          dueText,
+          style: TextStyle(
+            color: overdue ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => context.push('/maintenance/${task.id}/edit', extra: task),
+      ),
+    );
+  }
+
+  String _dueText(BuildContext context, DateTime dueDate) {
+    final l10n = context.l10n;
+    final today = DateUtils.dateOnly(DateTime.now());
+    final due = DateUtils.dateOnly(dueDate);
+    final delta = due.difference(today).inDays;
+    if (delta < 0) {
+      return l10n.overdueBy(-delta);
+    }
+    if (delta == 0) {
+      return l10n.dueToday;
+    }
+    return l10n.dueInDays(delta);
   }
 }
 

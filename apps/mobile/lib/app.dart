@@ -54,7 +54,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: 'maintenance/new',
-            builder: (context, state) => const MaintenanceFormScreen(),
+            builder: (context, state) {
+              final item = state.extra;
+              return MaintenanceFormScreen(initialItem: item is HomeItem ? item : null);
+            },
           ),
           GoRoute(
             path: 'maintenance/:taskId/edit',

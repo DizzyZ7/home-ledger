@@ -24,6 +24,9 @@ extension MaintenanceLocalizations on AppLocalizations {
   String get noMaintenanceBody => _isRussian
       ? 'Добавьте задачу к вещи, чтобы не забывать о регулярном уходе.'
       : 'Add a task to an item so regular care is never forgotten.';
+  String get noMaintenanceForItem => _isRussian
+      ? 'Для этой вещи пока нет задач обслуживания.'
+      : 'There are no maintenance tasks for this item yet.';
   String get dueToday => _isRussian ? 'Нужно выполнить сегодня' : 'Due today';
 
   String itemContext(String itemName) => _isRussian ? 'Вещь: $itemName' : 'Item: $itemName';

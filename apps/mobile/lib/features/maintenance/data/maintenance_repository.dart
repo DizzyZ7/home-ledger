@@ -8,7 +8,7 @@ import '../domain/maintenance_task.dart';
 import 'maintenance_task_payload.dart';
 
 abstract class MaintenanceRepository {
-  Future<List<MaintenanceTask>> loadTasks();
+  Future<List<MaintenanceTask>> loadTasks({String? itemId});
   Future<MaintenanceTask> createTask(MaintenanceTask task);
   Future<MaintenanceTask> updateTask(MaintenanceTask task);
   Future<MaintenanceTask> completeTask(String taskId);
@@ -20,9 +20,12 @@ class RemoteMaintenanceRepository implements MaintenanceRepository {
   final Dio _client;
 
   @override
-  Future<List<MaintenanceTask>> loadTasks() async {
+  Future<List<MaintenanceTask>> loadTasks({String? itemId}) async {
     try {
-      final response = await _client.get<Map<String, dynamic>>('/maintenance');
+      final response = await _client.get<Map<String, dynamic>>(
+        '/maintenance',
+        queryParameters: itemId == null ? null : {'item_id': itemId},
+      );
       final payload = response.data;
       final rawTasks = payload?['items'] as List<dynamic>? ?? const [];
       return rawTasks
@@ -107,9 +110,10 @@ class MockMaintenanceRepository implements MaintenanceRepository {
   final List<MaintenanceTask> _tasks;
 
   @override
-  Future<List<MaintenanceTask>> loadTasks() async {
-    _tasks.sort((left, right) => left.nextDueDate.compareTo(right.nextDueDate));
-    return List.unmodifiable(_tasks);
+  Future<List<MaintenanceTask>> loadTasks({String? itemId}) async {
+    final tasks = itemId == null ? _tasks : _tasks.where((task) => task.itemId == itemId).toList();
+    tasks.sort((left, right) => left.nextDueDate.compareTo(right.nextDueDate));
+    return List.unmodifiable(tasks);
   }
 
   @override
