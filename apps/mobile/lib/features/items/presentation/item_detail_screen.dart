@@ -199,7 +199,9 @@ class _ItemMaintenanceSection extends ConsumerWidget {
                   child: Text(l10n.maintenance, style: Theme.of(context).textTheme.titleMedium),
                 ),
                 TextButton.icon(
-                  onPressed: () => onAddTask(),
+                  onPressed: () {
+                    onAddTask();
+                  },
                   icon: const Icon(Icons.add),
                   label: Text(l10n.addMaintenance),
                 ),
@@ -246,7 +248,6 @@ class _ItemMaintenanceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
     final dueText = _dueText(context, task.nextDueDate);
     final overdue = DateUtils.dateOnly(task.nextDueDate).isBefore(DateUtils.dateOnly(DateTime.now()));
 
@@ -326,7 +327,7 @@ class _UnavailableItemState extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            mainAxisSize: MainAxis.min,
             children: [
               const Icon(Icons.inventory_2_outlined, size: 48),
               const SizedBox(height: 16),
