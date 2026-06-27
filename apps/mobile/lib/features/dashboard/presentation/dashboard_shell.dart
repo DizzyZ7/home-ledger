@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/localization/app_localizations.dart';
+import '../../maintenance/presentation/maintenance_hub_screen.dart';
 import '../../maintenance/presentation/maintenance_localizations.dart';
-import '../../maintenance/presentation/maintenance_screen.dart';
 import 'home_screen.dart';
 
 class DashboardShell extends StatefulWidget {
@@ -21,7 +21,7 @@ class _DashboardShellState extends State<DashboardShell> {
     return Scaffold(
       body: IndexedStack(
         index: _selectedIndex,
-        children: const [HomeScreen(), MaintenanceScreen()],
+        children: const [HomeScreen(), MaintenanceHubScreen()],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
