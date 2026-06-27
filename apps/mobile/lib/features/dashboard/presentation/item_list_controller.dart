@@ -22,4 +22,19 @@ class ItemListController extends AsyncNotifier<List<HomeItem>> {
     final created = await ref.read(homeItemRepositoryProvider).createItem(item);
     state = AsyncData([created, ...previous]);
   }
+
+  Future<void> updateItem(HomeItem item) async {
+    final updated = await ref.read(homeItemRepositoryProvider).updateItem(item);
+    final current = state.valueOrNull ?? const <HomeItem>[];
+    state = AsyncData([
+      for (final existing in current)
+        if (existing.id == updated.id) updated else existing,
+    ]);
+  }
+
+  Future<void> archiveItem(String itemId) async {
+    await ref.read(homeItemRepositoryProvider).archiveItem(itemId);
+    final current = state.valueOrNull ?? const <HomeItem>[];
+    state = AsyncData(current.where((item) => item.id != itemId).toList(growable: false));
+  }
 }
