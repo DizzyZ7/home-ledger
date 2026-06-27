@@ -154,7 +154,7 @@ class _MissingMaintenanceRoute extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBuilder(),
+      appBar: AppBar(),
       body: Center(child: Text(context.l10n.errorGeneric)),
     );
   }
