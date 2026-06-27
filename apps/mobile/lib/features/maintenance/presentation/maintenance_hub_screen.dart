@@ -19,6 +19,7 @@ class MaintenanceHubScreen extends StatelessWidget {
           right: 16,
           bottom: 16,
           child: FloatingActionButton.extended(
+            heroTag: 'homeledger-add-maintenance',
             onPressed: () => context.push('/maintenance/new'),
             icon: const Icon(Icons.add),
             label: Text(l10n.addMaintenance),
