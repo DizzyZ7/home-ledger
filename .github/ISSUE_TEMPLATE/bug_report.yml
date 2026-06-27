@@ -1,0 +1,37 @@
+name: Bug report
+description: Report a reproducible problem without private data.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not paste access tokens, passwords, receipts, unredacted screenshots, private URLs, or real serial numbers.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Mobile app
+        - API
+        - Docker Compose
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and reproduction steps
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include safe versions only, such as OS, Flutter/Python version and device type.
