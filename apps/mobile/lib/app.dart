@@ -10,6 +10,7 @@ import 'features/auth/presentation/auth_screen.dart';
 import 'features/auth/presentation/session_controller.dart';
 import 'features/dashboard/presentation/dashboard_shell.dart';
 import 'features/items/domain/home_item.dart';
+import 'features/items/presentation/archived_items_screen.dart';
 import 'features/items/presentation/item_detail_screen.dart';
 import 'features/items/presentation/item_form_screen.dart';
 import 'features/maintenance/domain/maintenance_task.dart';
@@ -28,6 +29,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'items/new',
             builder: (context, state) => const ItemFormScreen(),
+          ),
+          GoRoute(
+            path: 'items/archived',
+            builder: (context, state) => const ArchivedItemsScreen(),
           ),
           GoRoute(
             path: 'items/:itemId',

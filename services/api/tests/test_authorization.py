@@ -30,3 +30,28 @@ def test_user_cannot_read_another_users_item(client):
 
     assert response.status_code == 404
     assert response.json()["detail"]["code"] == "item_not_found"
+
+
+def test_user_cannot_restore_another_users_archived_item(client):
+    owner_token = _register(client, "archive-owner@example.com")
+    other_token = _register(client, "archive-other@example.com")
+    owner_headers = {"Authorization": f"Bearer {owner_token}"}
+
+    created = client.post(
+        "/api/v1/items",
+        headers=owner_headers,
+        json={"name": "Private appliance", "category": "appliance"},
+    )
+    assert created.status_code == 201
+    item_id = created.json()["id"]
+
+    archived = client.delete(f"/api/v1/items/{item_id}", headers=owner_headers)
+    assert archived.status_code == 204
+
+    response = client.post(
+        f"/api/v1/items/{item_id}/restore",
+        headers={"Authorization": f"Bearer {other_token}"},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"]["code"] == "item_not_found"
