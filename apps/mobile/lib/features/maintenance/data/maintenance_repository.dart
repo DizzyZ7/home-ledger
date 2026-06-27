@@ -10,6 +10,7 @@ import 'maintenance_task_payload.dart';
 abstract class MaintenanceRepository {
   Future<List<MaintenanceTask>> loadTasks();
   Future<MaintenanceTask> createTask(MaintenanceTask task);
+  Future<MaintenanceTask> updateTask(MaintenanceTask task);
   Future<MaintenanceTask> completeTask(String taskId);
 }
 
@@ -39,6 +40,23 @@ class RemoteMaintenanceRepository implements MaintenanceRepository {
       final response = await _client.post<Map<String, dynamic>>(
         '/maintenance',
         data: task.toCreatePayload(),
+      );
+      final payload = response.data;
+      if (payload == null) {
+        throw const ApiException('Empty maintenance response.');
+      }
+      return MaintenanceTask.fromJson(payload);
+    } on DioException catch (exception) {
+      throw ApiException.fromDio(exception);
+    }
+  }
+
+  @override
+  Future<MaintenanceTask> updateTask(MaintenanceTask task) async {
+    try {
+      final response = await _client.patch<Map<String, dynamic>>(
+        '/maintenance/${task.id}',
+        data: task.toUpdatePayload(),
       );
       final payload = response.data;
       if (payload == null) {
@@ -95,6 +113,16 @@ class MockMaintenanceRepository implements MaintenanceRepository {
   @override
   Future<MaintenanceTask> createTask(MaintenanceTask task) async {
     _tasks.add(task);
+    return task;
+  }
+
+  @override
+  Future<MaintenanceTask> updateTask(MaintenanceTask task) async {
+    final index = _tasks.indexWhere((existing) => existing.id == task.id);
+    if (index == -1) {
+      throw const ApiException('Maintenance task was not found.');
+    }
+    _tasks[index] = task;
     return task;
   }
 

@@ -26,19 +26,33 @@ class MaintenanceListController extends AsyncNotifier<List<MaintenanceTask>> {
   Future<void> createTask(MaintenanceTask task) async {
     final created = await ref.read(maintenanceRepositoryProvider).createTask(task);
     final current = state.valueOrNull ?? const <MaintenanceTask>[];
-    final updated = [...current, created]..sort(
-        (left, right) => left.nextDueDate.compareTo(right.nextDueDate),
-      );
-    state = AsyncData(updated);
+    state = AsyncData(_sort([...current, created]));
+  }
+
+  Future<void> updateTask(MaintenanceTask task) async {
+    final updatedTask = await ref.read(maintenanceRepositoryProvider).updateTask(task);
+    final current = state.valueOrNull ?? const <MaintenanceTask>[];
+    state = AsyncData(
+      _sort([
+        for (final existing in current)
+          if (existing.id == updatedTask.id) updatedTask else existing,
+      ]),
+    );
   }
 
   Future<void> completeTask(String taskId) async {
     final completed = await ref.read(maintenanceRepositoryProvider).completeTask(taskId);
     final current = state.valueOrNull ?? const <MaintenanceTask>[];
-    final updated = current
-        .map((task) => task.id == completed.id ? completed : task)
-        .toList(growable: false)
-      ..sort((left, right) => left.nextDueDate.compareTo(right.nextDueDate));
-    state = AsyncData(updated);
+    state = AsyncData(
+      _sort([
+        for (final task in current)
+          if (task.id == completed.id) completed else task,
+      ]),
+    );
+  }
+
+  List<MaintenanceTask> _sort(List<MaintenanceTask> tasks) {
+    tasks.sort((left, right) => left.nextDueDate.compareTo(right.nextDueDate));
+    return tasks;
   }
 }

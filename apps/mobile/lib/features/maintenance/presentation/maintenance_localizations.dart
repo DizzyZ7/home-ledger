@@ -5,11 +5,13 @@ extension MaintenanceLocalizations on AppLocalizations {
 
   String get maintenance => _isRussian ? 'Обслуживание' : 'Maintenance';
   String get addMaintenance => _isRussian ? 'Добавить задачу' : 'Add task';
+  String get editMaintenance => _isRussian ? 'Редактировать задачу' : 'Edit task';
   String get taskTitle => _isRussian ? 'Что нужно сделать' : 'Task title';
   String get selectItem => _isRussian ? 'Вещь' : 'Item';
   String get frequencyDays => _isRussian ? 'Периодичность, дней' : 'Frequency, days';
   String get nextDueDate => _isRussian ? 'Следующее обслуживание' : 'Next due date';
   String get taskSaved => _isRussian ? 'Задача добавлена' : 'Task added';
+  String get taskUpdated => _isRussian ? 'Изменения сохранены' : 'Changes saved';
   String get noItemsForTaskTitle => _isRussian ? 'Сначала добавьте вещь' : 'Add an item first';
   String get noItemsForTaskBody => _isRussian
       ? 'Задача обслуживания всегда привязана к вещи из вашего инвентаря.'
