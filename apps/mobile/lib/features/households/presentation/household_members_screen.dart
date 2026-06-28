@@ -6,6 +6,7 @@ import '../data/household_repository.dart';
 import '../domain/household_member.dart';
 import '../domain/household_summary.dart';
 import 'current_household_provider.dart';
+import 'household_invites_section.dart';
 import 'household_localizations.dart';
 
 class HouseholdMembersScreen extends ConsumerStatefulWidget {
@@ -28,10 +29,7 @@ class _HouseholdMembersScreenState extends ConsumerState<HouseholdMembersScreen>
   }
 
   Future<void> _addMember() async {
-    if (!(_formKey.currentState?.validate() ?? false) || _adding) {
-      return;
-    }
-
+    if (!(_formKey.currentState?.validate() ?? false) || _adding) return;
     setState(() => _adding = true);
     try {
       await ref.read(householdRepositoryProvider).addMember(_emailController.text.trim());
@@ -49,9 +47,7 @@ class _HouseholdMembersScreenState extends ConsumerState<HouseholdMembersScreen>
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _adding = false);
-      }
+      if (mounted) setState(() => _adding = false);
     }
   }
 
@@ -73,9 +69,7 @@ class _HouseholdMembersScreenState extends ConsumerState<HouseholdMembersScreen>
         ],
       ),
     );
-    if (confirmed != true || !mounted) {
-      return;
-    }
+    if (confirmed != true || !mounted) return;
 
     setState(() => _removingUserId = member.userId);
     try {
@@ -93,16 +87,13 @@ class _HouseholdMembersScreenState extends ConsumerState<HouseholdMembersScreen>
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _removingUserId = null);
-      }
+      if (mounted) setState(() => _removingUserId = null);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final detail = ref.watch(currentHouseholdProvider);
-
     return Scaffold(
       appBar: AppBar(title: Text(context.householdMembersTitle)),
       body: detail.when(
@@ -123,14 +114,16 @@ class _HouseholdMembersScreenState extends ConsumerState<HouseholdMembersScreen>
                 ),
               ),
               const SizedBox(height: 16),
-              if (isOwner)
+              if (isOwner) ...[
                 _AddMemberForm(
                   formKey: _formKey,
                   emailController: _emailController,
                   adding: _adding,
                   onAdd: _addMember,
-                )
-              else
+                ),
+                const SizedBox(height: 12),
+                const HouseholdInvitesSection(),
+              ] else
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -201,12 +194,8 @@ class _AddMemberForm extends StatelessWidget {
                 ),
                 validator: (value) {
                   final email = value?.trim() ?? '';
-                  if (email.isEmpty) {
-                    return l10n.requiredField;
-                  }
-                  if (!email.contains('@')) {
-                    return context.memberEmailHint;
-                  }
+                  if (email.isEmpty) return l10n.requiredField;
+                  if (!email.contains('@')) return context.memberEmailHint;
                   return null;
                 },
                 onFieldSubmitted: (_) => onAdd(),
@@ -218,11 +207,7 @@ class _AddMemberForm extends StatelessWidget {
                   key: const ValueKey('household-add-member'),
                   onPressed: adding ? null : onAdd,
                   icon: adding
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.person_add_alt_1_outlined),
                   label: Text(context.addHouseholdMember),
                 ),
@@ -263,11 +248,7 @@ class _HouseholdMemberTile extends StatelessWidget {
                 tooltip: context.removeHouseholdMember,
                 onPressed: removing ? null : onRemove,
                 icon: removing
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.person_remove_outlined),
               )
             : null,
