@@ -96,7 +96,7 @@ class _AuthInterceptor extends QueuedInterceptor {
         return;
       }
 
-      await _tokenStorage.save(
+      await _tokenStorage.saveTokens(
         accessToken: renewedAccessToken,
         refreshToken: renewedRefreshToken,
       );
