@@ -52,13 +52,7 @@ def _member_response(membership: HouseholdMember) -> HouseholdMemberResponse:
 @router.get("", response_model=list[HouseholdSummaryResponse])
 def list_households(session: DbSession, user: CurrentUser) -> list[HouseholdSummaryResponse]:
     memberships = list(
-        session.scalars(
-            select(HouseholdMember)
-            .options(selectinload(HouseholdMember.household))
-            .join(HouseholdMember.household)
-            .where(HouseholdMember.user_id == user.id)
-            .order_by(Household.created_at.asc())
-        )
+        session.scalars(select(HouseholdMember).options(selectinload(HouseholdMember.household)).join(HouseholdMember.household).where(HouseholdMember.user_id == user.id).order_by(Household.created_at.asc()))
     )
     return [_summary_response(membership, user.active_household_id) for membership in memberships]
 
@@ -67,12 +61,7 @@ def list_households(session: DbSession, user: CurrentUser) -> list[HouseholdSumm
 def get_current_household(session: DbSession, user: CurrentUser) -> HouseholdDetailResponse:
     membership = active_household_membership(session, user.id)
     members = list(
-        session.scalars(
-            select(HouseholdMember)
-            .options(selectinload(HouseholdMember.user))
-            .where(HouseholdMember.household_id == membership.household_id)
-            .order_by(HouseholdMember.created_at.asc())
-        )
+        session.scalars(select(HouseholdMember).options(selectinload(HouseholdMember.user)).where(HouseholdMember.household_id == membership.household_id).order_by(HouseholdMember.created_at.asc()))
     )
     return HouseholdDetailResponse(
         **_summary_response(membership, user.active_household_id).model_dump(),
@@ -85,19 +74,10 @@ def export_current_household(session: DbSession, user: CurrentUser) -> Household
     membership = active_household_membership(session, user.id)
     household = membership.household
 
-    items = list(
-        session.scalars(
-            select(HomeItem)
-            .where(HomeItem.household_id == household.id)
-            .order_by(HomeItem.created_at.asc(), HomeItem.id.asc())
-        )
-    )
+    items = list(session.scalars(select(HomeItem).where(HomeItem.household_id == household.id).order_by(HomeItem.created_at.asc(), HomeItem.id.asc())))
     tasks = list(
         session.scalars(
-            select(MaintenanceTask)
-            .options(selectinload(MaintenanceTask.item))
-            .where(MaintenanceTask.household_id == household.id)
-            .order_by(MaintenanceTask.created_at.asc(), MaintenanceTask.id.asc())
+            select(MaintenanceTask).options(selectinload(MaintenanceTask.item)).where(MaintenanceTask.household_id == household.id).order_by(MaintenanceTask.created_at.asc(), MaintenanceTask.id.asc())
         )
     )
     completions = list(
@@ -118,9 +98,7 @@ def export_current_household(session: DbSession, user: CurrentUser) -> Household
         ),
         items=[HouseholdExportItem.model_validate(item) for item in items],
         maintenance_tasks=[MaintenanceTaskResponse.model_validate(task) for task in tasks],
-        maintenance_completions=[
-            MaintenanceCompletionResponse.model_validate(completion) for completion in completions
-        ],
+        maintenance_completions=[MaintenanceCompletionResponse.model_validate(completion) for completion in completions],
     )
 
 
