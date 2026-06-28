@@ -51,4 +51,44 @@ extension HouseholdLocalizations on BuildContext {
   String get householdMembersReadOnly => l10n.languageCode == 'ru'
       ? 'Только владелец дома может менять состав участников.'
       : 'Only the household owner can manage members.';
+
+  String get invitationsTitle => l10n.languageCode == 'ru' ? 'Приглашения' : 'Invitations';
+
+  String get createInvitation => l10n.languageCode == 'ru' ? 'Создать код приглашения' : 'Create invite code';
+
+  String get joinHousehold => l10n.languageCode == 'ru' ? 'Вступить по коду' : 'Join with code';
+
+  String get invitationCode => l10n.languageCode == 'ru' ? 'Код приглашения' : 'Invitation code';
+
+  String get invitationCodeHint => l10n.languageCode == 'ru'
+      ? 'Вставьте код вида HL-XXXX-XXXX-XXXX-XXXX-XXXX'
+      : 'Paste a code like HL-XXXX-XXXX-XXXX-XXXX-XXXX';
+
+  String get invitationCodeCreated => l10n.languageCode == 'ru'
+      ? 'Код создан. Передайте его участнику.'
+      : 'Code created. Share it with the person you invite.';
+
+  String get invitationCodeCopied => l10n.languageCode == 'ru' ? 'Код скопирован.' : 'Code copied.';
+
+  String get invitationAccepted => l10n.languageCode == 'ru'
+      ? 'Вы присоединились к дому.'
+      : 'You joined the household.';
+
+  String get invitationExpires => l10n.languageCode == 'ru' ? 'Действует до' : 'Expires';
+
+  String get noActiveInvitations => l10n.languageCode == 'ru'
+      ? 'Активных приглашений пока нет.'
+      : 'There are no active invitations.';
+
+  String get revokeInvitation => l10n.languageCode == 'ru' ? 'Отозвать приглашение' : 'Revoke invitation';
+
+  String get revokeInvitationTitle => l10n.languageCode == 'ru' ? 'Отозвать приглашение?' : 'Revoke invitation?';
+
+  String get revokeInvitationBody => l10n.languageCode == 'ru'
+      ? 'Этот код сразу перестанет работать.'
+      : 'This code will stop working immediately.';
+
+  String get invitationCodeSecurityHint => l10n.languageCode == 'ru'
+      ? 'Код показывается только один раз. Не публикуйте его в открытом доступе.'
+      : 'The code is shown only once. Do not post it publicly.';
 }
