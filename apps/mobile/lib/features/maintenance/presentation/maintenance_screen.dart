@@ -6,6 +6,7 @@ import '../../../core/localization/app_localizations.dart';
 import '../domain/maintenance_task.dart';
 import 'maintenance_filter.dart';
 import 'maintenance_filter_localizations.dart';
+import 'maintenance_history_controller.dart';
 import 'maintenance_list_controller.dart';
 import 'maintenance_localizations.dart';
 
@@ -23,6 +24,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
     setState(() => _completingTaskId = task.id);
     try {
       await ref.read(maintenanceListControllerProvider.notifier).completeTask(task.id);
+      ref.invalidate(maintenanceHistoryProvider);
       if (!mounted) {
         return;
       }
@@ -49,7 +51,17 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
     final l10n = context.l10n;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.maintenance)),
+      appBar: AppBar(
+        title: Text(l10n.maintenance),
+        actions: [
+          IconButton(
+            key: const ValueKey('maintenance-history-action'),
+            tooltip: l10n.maintenanceHistory,
+            icon: const Icon(Icons.history_outlined),
+            onPressed: () => context.push('/maintenance/history'),
+          ),
+        ],
+      ),
       body: tasks.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => _MaintenanceErrorState(
@@ -209,6 +221,7 @@ class _MaintenanceTaskTile extends StatelessWidget {
               Align(
                 alignment: Alignment.centerRight,
                 child: FilledButton.tonalIcon(
+                  key: ValueKey('maintenance-complete-${task.id}'),
                   onPressed: isCompleting ? null : onComplete,
                   icon: isCompleting
                       ? const SizedBox(
