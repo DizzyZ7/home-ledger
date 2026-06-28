@@ -16,6 +16,7 @@ class Household(TimestampMixin, Base):
 
     owner = relationship("User", foreign_keys=[owner_id], back_populates="owned_households")
     members = relationship("HouseholdMember", back_populates="household", cascade="all, delete-orphan")
+    invites = relationship("HouseholdInvite", back_populates="household", cascade="all, delete-orphan")
     items = relationship("HomeItem", back_populates="household", cascade="all, delete-orphan")
     maintenance_tasks = relationship(
         "MaintenanceTask",
