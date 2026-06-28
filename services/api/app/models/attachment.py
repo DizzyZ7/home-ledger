@@ -22,7 +22,7 @@ class ItemAttachment(TimestampMixin, Base):
         nullable=False,
     )
     original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
-    storage_key: Mapped[str] = mapped_column(String(32), unique=True, index=True, nullable=False)
+    storage_key: Mapped[str] = mapped_column(String(32), unique=True, nullable=False)
     content_type: Mapped[str] = mapped_column(String(120), nullable=False)
     size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
     sha256: Mapped[str] = mapped_column(String(64), nullable=False)
