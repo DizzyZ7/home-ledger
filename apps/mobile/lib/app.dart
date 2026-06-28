@@ -9,6 +9,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/auth_screen.dart';
 import 'features/auth/presentation/session_controller.dart';
 import 'features/dashboard/presentation/dashboard_shell.dart';
+import 'features/households/presentation/household_switcher_screen.dart';
 import 'features/items/domain/home_item.dart';
 import 'features/items/presentation/archived_items_screen.dart';
 import 'features/items/presentation/item_detail_screen.dart';
@@ -28,6 +29,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/',
         builder: (context, state) => const SessionGate(),
         routes: [
+          GoRoute(
+            path: 'households',
+            builder: (context, state) => const HouseholdSwitcherScreen(),
+          ),
           GoRoute(
             path: 'items/new',
             builder: (context, state) => const ItemFormScreen(),
