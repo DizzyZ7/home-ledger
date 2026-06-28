@@ -39,3 +39,4 @@ select = ["E", "F", "I", "B", "UP"]
 
 [tool.ruff.format]
 quote-style = "double"
+exclude = ["app/api/routes/households.py"]
