@@ -45,11 +45,7 @@ def _member_response(membership: HouseholdMember) -> HouseholdMemberResponse:
 def list_households(session: DbSession, user: CurrentUser) -> list[HouseholdSummaryResponse]:
     memberships = list(
         session.scalars(
-            select(HouseholdMember)
-            .options(selectinload(HouseholdMember.household))
-            .join(HouseholdMember.household)
-            .where(HouseholdMember.user_id == user.id)
-            .order_by(Household.created_at.asc())
+            select(HouseholdMember).options(selectinload(HouseholdMember.household)).join(HouseholdMember.household).where(HouseholdMember.user_id == user.id).order_by(Household.created_at.asc())
         )
     )
     return [_summary_response(membership, user.active_household_id) for membership in memberships]
@@ -89,12 +85,7 @@ def create_household(
 def get_current_household(session: DbSession, user: CurrentUser) -> HouseholdDetailResponse:
     membership = active_household_membership(session, user.id)
     members = list(
-        session.scalars(
-            select(HouseholdMember)
-            .options(selectinload(HouseholdMember.user))
-            .where(HouseholdMember.household_id == membership.household_id)
-            .order_by(HouseholdMember.created_at.asc())
-        )
+        session.scalars(select(HouseholdMember).options(selectinload(HouseholdMember.user)).where(HouseholdMember.household_id == membership.household_id).order_by(HouseholdMember.created_at.asc()))
     )
     return HouseholdDetailResponse(
         **_summary_response(membership, user.active_household_id).model_dump(),
