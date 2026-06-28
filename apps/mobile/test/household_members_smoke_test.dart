@@ -21,10 +21,12 @@ void main() {
     await tester.pumpAndSettle();
 
     final guestTile = find.byKey(const ValueKey('household-member-mock-member-1'));
+    final removeGuest = find.byKey(const ValueKey('household-remove-member-mock-member-1'));
     expect(find.text('guest'), findsOneWidget);
     expect(guestTile, findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('household-remove-member-mock-member-1')));
+    await tester.ensureVisible(removeGuest);
+    await tester.tap(removeGuest);
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Удалить участника'));
     await tester.pumpAndSettle();
