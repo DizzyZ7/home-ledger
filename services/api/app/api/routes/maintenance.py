@@ -6,6 +6,7 @@ from sqlalchemy.orm import selectinload
 
 from app.api.dependencies import CurrentUser, DbSession
 from app.api.routes.items import _default_household, _owned_item
+from app.models.item import HomeItem
 from app.models.maintenance import MaintenanceTask
 from app.schemas.common import Page
 from app.schemas.items import (
@@ -15,6 +16,23 @@ from app.schemas.items import (
 )
 
 router = APIRouter(prefix="/maintenance", tags=["maintenance"])
+
+
+def _item_archived_error() -> HTTPException:
+    return HTTPException(
+        status_code=409,
+        detail={
+            "code": "item_archived",
+            "message": "Restore the item before managing its maintenance tasks.",
+        },
+    )
+
+
+def _active_owned_item(session: DbSession, user_id: str, item_id: str) -> HomeItem:
+    item = _owned_item(session, user_id, item_id)
+    if item.archived_at is not None:
+        raise _item_archived_error()
+    return item
 
 
 def _owned_task(session: DbSession, user_id: str, task_id: str) -> MaintenanceTask:
@@ -31,6 +49,8 @@ def _owned_task(session: DbSession, user_id: str, task_id: str) -> MaintenanceTa
             status_code=404,
             detail={"code": "task_not_found", "message": "Task was not found."},
         )
+    if task.item.archived_at is not None:
+        raise _item_archived_error()
     return task
 
 
@@ -43,12 +63,23 @@ def list_tasks(
     item_id: str | None = Query(default=None, min_length=1, max_length=36),
 ) -> Page[MaintenanceTaskResponse]:
     household = _default_household(session, user.id)
-    filters = [MaintenanceTask.household_id == household.id]
+    filters = [
+        MaintenanceTask.household_id == household.id,
+        HomeItem.archived_at.is_(None),
+    ]
     if item_id is not None:
         filters.append(MaintenanceTask.item_id == item_id)
 
-    statement = select(MaintenanceTask).options(selectinload(MaintenanceTask.item)).where(*filters).order_by(MaintenanceTask.next_due_date.asc()).offset((page - 1) * page_size).limit(page_size)
-    total_statement = select(func.count()).select_from(MaintenanceTask).where(*filters)
+    statement = (
+        select(MaintenanceTask)
+        .join(MaintenanceTask.item)
+        .options(selectinload(MaintenanceTask.item))
+        .where(*filters)
+        .order_by(MaintenanceTask.next_due_date.asc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+    total_statement = select(func.count()).select_from(MaintenanceTask).join(MaintenanceTask.item).where(*filters)
     tasks = list(session.scalars(statement))
     total = session.scalar(total_statement) or 0
     return Page[MaintenanceTaskResponse](items=tasks, page=page, page_size=page_size, total=total)
@@ -57,7 +88,7 @@ def list_tasks(
 @router.post("", response_model=MaintenanceTaskResponse, status_code=status.HTTP_201_CREATED)
 def create_task(payload: MaintenanceTaskCreate, session: DbSession, user: CurrentUser) -> MaintenanceTask:
     household = _default_household(session, user.id)
-    item = _owned_item(session, user.id, payload.item_id)
+    item = _active_owned_item(session, user.id, payload.item_id)
     if item.household_id != household.id:
         raise HTTPException(
             status_code=404,
