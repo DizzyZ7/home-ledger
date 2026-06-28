@@ -25,11 +25,7 @@ def active_household_membership(session: DbSession, user_id: str) -> HouseholdMe
             return membership
 
     membership = session.scalar(
-        select(HouseholdMember)
-        .options(selectinload(HouseholdMember.household))
-        .where(HouseholdMember.user_id == user.id)
-        .join(HouseholdMember.household)
-        .order_by(Household.created_at.asc())
+        select(HouseholdMember).options(selectinload(HouseholdMember.household)).where(HouseholdMember.user_id == user.id).join(HouseholdMember.household).order_by(Household.created_at.asc())
     )
     if membership is None:
         raise HTTPException(
