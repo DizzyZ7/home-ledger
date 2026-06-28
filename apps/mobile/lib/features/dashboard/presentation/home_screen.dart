@@ -11,6 +11,7 @@ import '../../items/presentation/item_localizations.dart';
 import '../../items/presentation/warranty_status_badge.dart';
 import 'dashboard_attention_summary.dart';
 import 'inventory_search.dart';
+import 'inventory_warranty_filter.dart';
 import 'item_list_controller.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -22,6 +23,7 @@ class HomeScreen extends ConsumerWidget {
     final locale = ref.watch(localeProvider);
     final l10n = context.l10n;
     final searchQuery = ref.watch(inventorySearchQueryProvider);
+    final warrantyFilter = ref.watch(inventoryWarrantyFilterProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -61,7 +63,11 @@ class HomeScreen extends ConsumerWidget {
             return _EmptyState(onAdd: () => context.push('/items/new'));
           }
 
-          final matchingItems = filterInventoryItems(data, searchQuery);
+          final warrantyFilteredItems = filterInventoryByWarrantyHealth(
+            data,
+            filter: warrantyFilter,
+          );
+          final matchingItems = filterInventoryItems(warrantyFilteredItems, searchQuery);
           return RefreshIndicator(
             onRefresh: () => ref.read(itemListControllerProvider.notifier).refresh(),
             child: ListView(
@@ -70,11 +76,19 @@ class HomeScreen extends ConsumerWidget {
                 DashboardAttentionSummary(items: data),
                 const SizedBox(height: 16),
                 const InventorySearchField(),
+                const SizedBox(height: 12),
+                InventoryWarrantyFilterBar(
+                  items: data,
+                  selectedFilter: warrantyFilter,
+                  onSelected: (filter) => ref.read(inventoryWarrantyFilterProvider.notifier).state = filter,
+                ),
                 const SizedBox(height: 16),
                 Text(l10n.allItems, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
                 if (matchingItems.isEmpty)
-                  _SearchEmptyState(query: searchQuery)
+                  searchQuery.trim().isEmpty
+                      ? _WarrantyFilterEmptyState(filter: warrantyFilter)
+                      : _SearchEmptyState(query: searchQuery)
                 else
                   ...matchingItems.map((item) => _ItemTile(item: item)),
               ],
@@ -148,6 +162,32 @@ class _SearchEmptyState extends StatelessWidget {
             Text(title, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 4),
             Text(body, textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WarrantyFilterEmptyState extends StatelessWidget {
+  const _WarrantyFilterEmptyState({required this.filter});
+
+  final InventoryWarrantyFilter filter;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const Icon(Icons.verified_outlined, size: 36),
+            const SizedBox(height: 12),
+            Text(
+              inventoryWarrantyFilterEmptyTitle(context, filter),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
           ],
         ),
       ),
