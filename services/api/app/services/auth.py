@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import DomainError
 from app.core.security import create_access_token, create_refresh_token, hash_password, verify_password
-from app.models.household import Household
+from app.models.household import Household, HouseholdMember
 from app.models.user import User
 from app.schemas.auth import AuthResponse, LoginRequest, RegisterRequest, TokenPair, UserResponse
 
@@ -25,6 +25,15 @@ class AuthService:
         household = Household(name=f"{user.display_name}'s home", owner=user)
         session.add_all([user, household])
         try:
+            session.flush()
+            user.active_household_id = household.id
+            session.add(
+                HouseholdMember(
+                    household_id=household.id,
+                    user_id=user.id,
+                    role="owner",
+                )
+            )
             session.commit()
         except IntegrityError as exc:
             session.rollback()
