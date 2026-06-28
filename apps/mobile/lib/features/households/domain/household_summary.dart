@@ -32,10 +32,13 @@ class HouseholdSummary {
     );
   }
 
-  HouseholdSummary copyWith({bool? isActive}) {
+  HouseholdSummary copyWith({
+    String? name,
+    bool? isActive,
+  }) {
     return HouseholdSummary(
       id: id,
-      name: name,
+      name: name ?? this.name,
       ownerId: ownerId,
       role: role,
       isActive: isActive ?? this.isActive,
