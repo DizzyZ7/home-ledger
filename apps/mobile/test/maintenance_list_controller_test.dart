@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:home_ledger/features/maintenance/data/maintenance_repository.dart';
+import 'package:home_ledger/features/maintenance/domain/maintenance_completion.dart';
 import 'package:home_ledger/features/maintenance/domain/maintenance_task.dart';
 import 'package:home_ledger/features/maintenance/presentation/maintenance_list_controller.dart';
 
@@ -30,6 +31,9 @@ class FakeMaintenanceRepository implements MaintenanceRepository {
     }
     return List.unmodifiable(_tasks.where((task) => task.itemId == itemId));
   }
+
+  @override
+  Future<List<MaintenanceCompletion>> loadHistory({String? itemId}) async => const [];
 
   @override
   Future<MaintenanceTask> updateTask(MaintenanceTask task) async {
