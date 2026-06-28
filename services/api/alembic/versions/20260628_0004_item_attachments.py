@@ -25,20 +25,38 @@ def upgrade() -> None:
         sa.Column("content_type", sa.String(length=120), nullable=False),
         sa.Column("size_bytes", sa.Integer(), nullable=False),
         sa.Column("sha256", sa.String(length=64), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.ForeignKeyConstraint(["household_id"], ["households.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["item_id"], ["items.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("storage_key"),
     )
-    op.create_index("ix_item_attachments_household_id", "item_attachments", ["household_id"], unique=False)
-    op.create_index("ix_item_attachments_item_id", "item_attachments", ["item_id"], unique=False)
-    op.create_index("ix_item_attachments_storage_key", "item_attachments", ["storage_key"], unique=True)
+    op.create_index(
+        "ix_item_attachments_household_id",
+        "item_attachments",
+        ["household_id"],
+        unique=False,
+    )
+    op.create_index(
+        "ix_item_attachments_item_id",
+        "item_attachments",
+        ["item_id"],
+        unique=False,
+    )
 
 
 def downgrade() -> None:
-    op.drop_index("ix_item_attachments_storage_key", table_name="item_attachments")
     op.drop_index("ix_item_attachments_item_id", table_name="item_attachments")
     op.drop_index("ix_item_attachments_household_id", table_name="item_attachments")
     op.drop_table("item_attachments")
