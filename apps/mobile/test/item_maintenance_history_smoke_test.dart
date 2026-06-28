@@ -24,12 +24,7 @@ void main() {
     await tester.tap(routerCompletion);
     await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationBar),
-        matching: find.text('Инвентарь'),
-      ),
-    );
+    await tester.tap(find.byIcon(Icons.inventory_2_outlined));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Washing machine').first);

@@ -17,7 +17,10 @@ void main() {
     expect(find.text('Review router firmware'), findsOneWidget);
     expect(find.text('Clean the washing machine filter'), findsNothing);
 
-    await tester.tap(find.text('Добавить задачу'));
+    final addTaskAction = find.text('Добавить задачу').first;
+    await tester.ensureVisible(addTaskAction);
+    await tester.pumpAndSettle();
+    await tester.tap(addTaskAction);
     await tester.pumpAndSettle();
 
     expect(find.text('Добавить задачу'), findsOneWidget);
