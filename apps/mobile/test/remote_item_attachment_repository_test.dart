@@ -98,6 +98,6 @@ void main() {
       '/items/router-1/attachments',
       '/items/router-1/attachments/receipt-1/download',
     ]);
-    expect(downloaded, Uint8List.fromList([1, 2, 3, 4]));
+    expect(downloaded, orderedEquals([1, 2, 3, 4]));
   });
 }
