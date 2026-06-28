@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -33,10 +32,14 @@ class _ItemAttachmentsSectionState extends ConsumerState<ItemAttachmentsSection>
       allowedExtensions: const ['pdf', 'jpg', 'jpeg', 'png', 'webp'],
       withData: true,
     );
-    final file = picked?.files.singleOrNull;
-    final bytes = file?.bytes;
-    if (file == null || bytes == null || bytes.isEmpty) {
-      if (mounted && picked != null) {
+    if (picked == null || picked.files.isEmpty) {
+      return;
+    }
+
+    final file = picked.files.first;
+    final bytes = file.bytes;
+    if (bytes == null || bytes.isEmpty) {
+      if (mounted) {
         _showError(context.l10n.attachmentPickerFailed);
       }
       return;
@@ -236,7 +239,10 @@ class _ItemAttachmentsSectionState extends ConsumerState<ItemAttachmentsSection>
   }
 
   String _downloadFilename(ItemAttachment attachment) {
-    final safeName = attachment.originalFilename.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+    final safeName = attachment.originalFilename.replaceAll(
+      RegExp(r'[^a-zA-Z0-9._-]'),
+      '_',
+    );
     return 'homeledger-${attachment.id}-$safeName';
   }
 }
