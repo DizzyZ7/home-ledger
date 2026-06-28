@@ -9,8 +9,10 @@ class MaintenanceTaskCache {
   MaintenanceTaskCache({
     String boxName = _defaultBoxName,
     String? householdId,
+    String? userId,
   })  : _boxName = boxName,
-        _householdId = householdId;
+        _householdId = householdId,
+        _userId = userId;
 
   static const _defaultBoxName = 'homeledger_maintenance_v1';
   static const _tasksKey = 'tasks';
@@ -18,6 +20,7 @@ class MaintenanceTaskCache {
 
   final String _boxName;
   final String? _householdId;
+  final String? _userId;
 
   Future<List<MaintenanceTask>?> read() {
     return _readList(_scopedKey(_tasksKey), MaintenanceTask.fromJson);
@@ -37,7 +40,18 @@ class MaintenanceTaskCache {
 
   Future<void> clearHistory() => _delete(_scopedKey(_historyKey));
 
-  String _scopedKey(String key) => _householdId == null ? key : '$key:$_householdId';
+  String _scopedKey(String key) {
+    if (_userId != null && _householdId != null) {
+      return '$key:user:$_userId:household:$_householdId';
+    }
+    if (_householdId != null) {
+      return '$key:household:$_householdId';
+    }
+    if (_userId != null) {
+      return '$key:user:$_userId';
+    }
+    return key;
+  }
 
   Future<List<T>?> _readList<T>(
     String key,
@@ -80,6 +94,15 @@ class MaintenanceTaskCache {
       await box.delete(key);
     } on Object {
       // A corrupted optional cache is safe to ignore after a failed cleanup.
+    }
+  }
+
+  static Future<void> clearAll() async {
+    try {
+      final box = await Hive.openBox<String>(_defaultBoxName);
+      await box.clear();
+    } on Object {
+      // Optional offline data must never block a local sign-out.
     }
   }
 }
