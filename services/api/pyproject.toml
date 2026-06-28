@@ -33,8 +33,6 @@ pythonpath = ["."]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-force-exclude = true
-exclude = ["**/households.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
