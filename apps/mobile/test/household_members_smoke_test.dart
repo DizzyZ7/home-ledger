@@ -34,7 +34,7 @@ void main() {
     expect(find.text('guest'), findsOneWidget);
   });
 
-  testWidgets('owner can create a one-time invite code', (tester) async {
+  testWidgets('owner can create a one-time invite code with a selected lifetime', (tester) async {
     await tester.pumpWidget(const ProviderScope(child: HomeLedgerApp()));
     await tester.pumpAndSettle();
 
@@ -44,6 +44,10 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('household-create-invite')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Срок действия кода'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('household-invite-lifetime-72')));
     await tester.pumpAndSettle();
 
     expect(find.text('Код приглашения'), findsOneWidget);
