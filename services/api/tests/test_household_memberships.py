@@ -85,3 +85,83 @@ def test_owner_can_share_a_household_and_member_can_switch_to_it(client):
     assert member_households_after_removal.status_code == 200
     assert len(member_households_after_removal.json()) == 1
     assert member_households_after_removal.json()[0]["is_active"] is True
+
+
+def test_user_can_create_and_rename_a_separate_household(client):
+    user = _register(client, email="homes@example.com", display_name="Homes")
+    headers = _headers(user)
+
+    original_item = client.post(
+        "/api/v1/items",
+        headers=headers,
+        json={"name": "Apartment kettle", "category": "appliance"},
+    )
+    assert original_item.status_code == 201
+
+    created = client.post(
+        "/api/v1/households",
+        headers=headers,
+        json={"name": "  Country house  "},
+    )
+    assert created.status_code == 201
+    assert created.json()["name"] == "Country house"
+    assert created.json()["role"] == "owner"
+    assert created.json()["is_active"] is True
+    country_house_id = created.json()["id"]
+
+    homes = client.get("/api/v1/households", headers=headers)
+    assert homes.status_code == 200
+    assert len(homes.json()) == 2
+    assert [home["id"] for home in homes.json() if home["is_active"]] == [country_house_id]
+
+    country_house_inventory = client.get("/api/v1/items", headers=headers)
+    assert country_house_inventory.status_code == 200
+    assert country_house_inventory.json()["items"] == []
+
+    renamed = client.patch(
+        "/api/v1/households/current",
+        headers=headers,
+        json={"name": "Dacha"},
+    )
+    assert renamed.status_code == 200
+    assert renamed.json()["id"] == country_house_id
+    assert renamed.json()["name"] == "Dacha"
+    assert renamed.json()["is_active"] is True
+
+    switched_back = client.post(
+        f"/api/v1/households/{homes.json()[0]['id']}/select",
+        headers=headers,
+    )
+    assert switched_back.status_code == 200
+    apartment_inventory = client.get("/api/v1/items", headers=headers)
+    assert apartment_inventory.status_code == 200
+    assert [item["name"] for item in apartment_inventory.json()["items"]] == ["Apartment kettle"]
+
+
+def test_member_cannot_rename_shared_household(client):
+    owner = _register(client, email="rename-owner@example.com", display_name="Owner")
+    member = _register(client, email="rename-member@example.com", display_name="Member")
+    owner_headers = _headers(owner)
+    member_headers = _headers(member)
+
+    shared_household = client.get("/api/v1/households/current", headers=owner_headers).json()
+    invited = client.post(
+        "/api/v1/households/current/members",
+        headers=owner_headers,
+        json={"email": "rename-member@example.com"},
+    )
+    assert invited.status_code == 201
+
+    selected = client.post(
+        f"/api/v1/households/{shared_household['id']}/select",
+        headers=member_headers,
+    )
+    assert selected.status_code == 200
+
+    forbidden = client.patch(
+        "/api/v1/households/current",
+        headers=member_headers,
+        json={"name": "Not allowed"},
+    )
+    assert forbidden.status_code == 403
+    assert forbidden.json()["detail"]["code"] == "household_owner_required"
