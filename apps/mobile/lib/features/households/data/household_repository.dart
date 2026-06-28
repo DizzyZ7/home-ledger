@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
+import '../domain/household_invite.dart';
 import '../domain/household_member.dart';
 import '../domain/household_summary.dart';
 
@@ -15,6 +16,10 @@ abstract class HouseholdRepository {
   Future<HouseholdDetail> loadCurrentHousehold();
   Future<HouseholdMember> addMember(String email);
   Future<void> removeMember(String userId);
+  Future<List<HouseholdInvite>> loadInvites();
+  Future<CreatedHouseholdInvite> createInvite({int? expiresInHours});
+  Future<void> revokeInvite(String inviteId);
+  Future<HouseholdSummary> acceptInvite(String code);
 }
 
 class RemoteHouseholdRepository implements HouseholdRepository {
@@ -125,6 +130,65 @@ class RemoteHouseholdRepository implements HouseholdRepository {
       throw ApiException.fromDio(exception);
     }
   }
+
+  @override
+  Future<List<HouseholdInvite>> loadInvites() async {
+    try {
+      final response = await _client.get<List<dynamic>>('/households/current/invites');
+      final payload = response.data ?? const [];
+      return List.unmodifiable(
+        payload
+            .whereType<Map<String, dynamic>>()
+            .map(HouseholdInvite.fromJson)
+            .toList(growable: false),
+      );
+    } on DioException catch (exception) {
+      throw ApiException.fromDio(exception);
+    }
+  }
+
+  @override
+  Future<CreatedHouseholdInvite> createInvite({int? expiresInHours}) async {
+    try {
+      final response = await _client.post<Map<String, dynamic>>(
+        '/households/current/invites',
+        data: expiresInHours == null ? null : {'expires_in_hours': expiresInHours},
+      );
+      final payload = response.data;
+      if (payload == null) {
+        throw const ApiException('Empty household invite response.');
+      }
+      return CreatedHouseholdInvite.fromJson(payload);
+    } on DioException catch (exception) {
+      throw ApiException.fromDio(exception);
+    }
+  }
+
+  @override
+  Future<void> revokeInvite(String inviteId) async {
+    try {
+      await _client.delete<void>('/households/current/invites/$inviteId');
+    } on DioException catch (exception) {
+      throw ApiException.fromDio(exception);
+    }
+  }
+
+  @override
+  Future<HouseholdSummary> acceptInvite(String code) async {
+    try {
+      final response = await _client.post<Map<String, dynamic>>(
+        '/households/invites/accept',
+        data: {'code': code},
+      );
+      final payload = response.data;
+      if (payload == null) {
+        throw const ApiException('Empty household response.');
+      }
+      return HouseholdSummary.fromJson(payload);
+    } on DioException catch (exception) {
+      throw ApiException.fromDio(exception);
+    }
+  }
 }
 
 class MockHouseholdRepository implements HouseholdRepository {
@@ -176,10 +240,15 @@ class MockHouseholdRepository implements HouseholdRepository {
           ],
         };
 
+  static const demoIncomingInviteCode = 'HL-DEMA-2345-6789-ABCD-EFGH';
+  static const _demoIncomingHouseholdId = 'mock-invited-household';
+
   List<HouseholdSummary> _households;
   final Map<String, List<HouseholdMember>> _membersByHousehold;
+  final Map<String, List<_MockHouseholdInvite>> _invitesByHousehold = {};
   var _memberSequence = 0;
   var _householdSequence = 0;
+  var _inviteSequence = 0;
 
   @override
   Future<List<HouseholdSummary>> loadHouseholds() async => List.unmodifiable(_households);
@@ -292,6 +361,98 @@ class MockHouseholdRepository implements HouseholdRepository {
     members.remove(member);
   }
 
+  @override
+  Future<List<HouseholdInvite>> loadInvites() async {
+    final active = _activeHousehold();
+    if (active.role != HouseholdRole.owner) {
+      throw const ApiException('Only the household owner can manage invitations.');
+    }
+    final invites = _invitesByHousehold[active.id] ?? const <_MockHouseholdInvite>[];
+    return List.unmodifiable(invites.map((invite) => invite.invite));
+  }
+
+  @override
+  Future<CreatedHouseholdInvite> createInvite({int? expiresInHours}) async {
+    final active = _activeHousehold();
+    if (active.role != HouseholdRole.owner) {
+      throw const ApiException('Only the household owner can manage invitations.');
+    }
+    final now = DateTime.now().toUtc();
+    final id = 'mock-invite-${++_inviteSequence}';
+    final code = 'HL-MOCK-${id.replaceAll('-', '').toUpperCase()}-CODE';
+    final invite = HouseholdInvite(
+      id: id,
+      createdAt: now,
+      expiresAt: now.add(Duration(hours: expiresInHours ?? 72)),
+    );
+    _invitesByHousehold.putIfAbsent(active.id, () => []).insert(
+          0,
+          _MockHouseholdInvite(invite: invite, code: code),
+        );
+    return CreatedHouseholdInvite(invite: invite, code: code);
+  }
+
+  @override
+  Future<void> revokeInvite(String inviteId) async {
+    final active = _activeHousehold();
+    if (active.role != HouseholdRole.owner) {
+      throw const ApiException('Only the household owner can manage invitations.');
+    }
+    final invites = _invitesByHousehold[active.id];
+    if (invites == null) {
+      throw const ApiException('Invitation was not found.');
+    }
+    final index = invites.indexWhere((invite) => invite.invite.id == inviteId);
+    if (index == -1) {
+      throw const ApiException('Invitation was not found.');
+    }
+    invites.removeAt(index);
+  }
+
+  @override
+  Future<HouseholdSummary> acceptInvite(String code) async {
+    if (_normalizeCode(code) == _normalizeCode(demoIncomingInviteCode)) {
+      if (_households.any((household) => household.id == _demoIncomingHouseholdId)) {
+        throw const ApiException('You are already a household member.');
+      }
+      const joinedHousehold = HouseholdSummary(
+        id: _demoIncomingHouseholdId,
+        name: 'Дом друзей',
+        ownerId: 'mock-friends-owner',
+        role: HouseholdRole.member,
+        isActive: true,
+      );
+      _households = [
+        for (final household in _households) household.copyWith(isActive: false),
+        joinedHousehold,
+      ];
+      _membersByHousehold[_demoIncomingHouseholdId] = const [
+        HouseholdMember(
+          userId: 'mock-friends-owner',
+          email: 'friends@example.com',
+          displayName: 'Друзья',
+          role: HouseholdRole.owner,
+        ),
+        HouseholdMember(
+          userId: 'demo-user',
+          email: 'demo@homeledger.local',
+          displayName: 'Демо-пользователь',
+          role: HouseholdRole.member,
+        ),
+      ];
+      return joinedHousehold;
+    }
+
+    for (final entry in _invitesByHousehold.entries) {
+      for (final invite in entry.value) {
+        if (_normalizeCode(invite.code) == _normalizeCode(code)) {
+          throw const ApiException('You are already a household member.');
+        }
+      }
+    }
+    throw const ApiException('Invitation is invalid or expired.');
+  }
+
   HouseholdSummary _activeHousehold() {
     return _households.firstWhere((household) => household.isActive);
   }
@@ -303,6 +464,17 @@ class MockHouseholdRepository implements HouseholdRepository {
     }
     return normalized;
   }
+
+  static String _normalizeCode(String code) {
+    return code.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
+  }
+}
+
+class _MockHouseholdInvite {
+  const _MockHouseholdInvite({required this.invite, required this.code});
+
+  final HouseholdInvite invite;
+  final String code;
 }
 
 final householdRepositoryProvider = Provider<HouseholdRepository>((ref) {

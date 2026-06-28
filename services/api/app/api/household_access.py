@@ -46,7 +46,7 @@ def require_active_household_owner(session: DbSession, user_id: str) -> Househol
             status_code=403,
             detail={
                 "code": "household_owner_required",
-                "message": "Only the household owner can manage members.",
+                "message": "Only the household owner can manage members and invitations.",
             },
         )
     return membership

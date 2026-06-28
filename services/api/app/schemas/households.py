@@ -51,3 +51,24 @@ class HouseholdCreate(HouseholdNamePayload):
 
 class HouseholdUpdate(HouseholdNamePayload):
     pass
+
+
+class HouseholdInviteCreate(APIModel):
+    expires_in_hours: int | None = Field(default=None, ge=1, le=168)
+
+
+class HouseholdInviteCreateResponse(APIModel):
+    id: str
+    code: str
+    expires_at: datetime
+    created_at: datetime
+
+
+class HouseholdInviteResponse(APIModel):
+    id: str
+    expires_at: datetime
+    created_at: datetime
+
+
+class HouseholdInviteAccept(APIModel):
+    code: str = Field(min_length=4, max_length=80)
