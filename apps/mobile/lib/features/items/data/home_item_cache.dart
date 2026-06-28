@@ -5,8 +5,13 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../domain/home_item.dart';
 
 class HomeItemCache {
+  HomeItemCache({String? householdId})
+      : _itemsKey = householdId == null ? _defaultItemsKey : '$_defaultItemsKey:$householdId';
+
   static const _boxName = 'homeledger_items_v1';
-  static const _itemsKey = 'items';
+  static const _defaultItemsKey = 'items';
+
+  final String _itemsKey;
 
   Future<List<HomeItem>> read() async {
     final box = await Hive.openBox<String>(_boxName);
