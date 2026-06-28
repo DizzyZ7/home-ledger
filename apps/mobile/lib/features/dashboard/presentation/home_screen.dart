@@ -122,11 +122,8 @@ class _SearchEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isRussian = Localizations.localeOf(context).languageCode == 'ru';
-    final title = isRussian ? 'Ничего не найµено : 'No matching items';
-    final body = isRussian
-        ? 'Попробуйте изменить запрос §$query§¸.'
-        : 'Try changing “$query”.';
+    final title = inventorySearchEmptyTitle(context);
+    final body = inventorySearchEmptyBody(context, query);
 
     return Card(
       child: Padding(
