@@ -16,9 +16,10 @@ class HouseholdSwitcherScreen extends ConsumerStatefulWidget {
 
 class _HouseholdSwitcherScreenState extends ConsumerState<HouseholdSwitcherScreen> {
   String? _selectingId;
+  var _savingName = false;
 
   Future<void> _select(HouseholdSummary household) async {
-    if (household.isActive || _selectingId != null) {
+    if (household.isActive || _selectingId != null || _savingName) {
       return;
     }
 
@@ -45,14 +46,107 @@ class _HouseholdSwitcherScreenState extends ConsumerState<HouseholdSwitcherScree
     }
   }
 
+  Future<void> _createHousehold() async {
+    final name = await _requestHouseholdName(title: context.createHousehold);
+    if (name == null || !mounted) {
+      return;
+    }
+
+    setState(() => _savingName = true);
+    try {
+      await ref.read(householdControllerProvider.notifier).createHousehold(name);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.householdCreated)),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.errorGeneric)),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _savingName = false);
+      }
+    }
+  }
+
+  Future<void> _renameHousehold(HouseholdSummary household) async {
+    final name = await _requestHouseholdName(
+      title: context.renameHousehold,
+      initialValue: household.name,
+    );
+    if (name == null || !mounted) {
+      return;
+    }
+
+    setState(() => _savingName = true);
+    try {
+      await ref.read(householdControllerProvider.notifier).renameCurrentHousehold(name);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.householdRenamed)),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.errorGeneric)),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _savingName = false);
+      }
+    }
+  }
+
+  Future<String?> _requestHouseholdName({
+    required String title,
+    String? initialValue,
+  }) {
+    return showDialog<String>(
+      context: context,
+      builder: (_) => _HouseholdNameDialog(
+        title: title,
+        initialValue: initialValue,
+      ),
+    );
+  }
+
+  HouseholdSummary? _activeHousehold(List<HouseholdSummary> households) {
+    for (final household in households) {
+      if (household.isActive) {
+        return household;
+      }
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final households = ref.watch(householdControllerProvider);
+    final activeHousehold = _activeHousehold(households.valueOrNull ?? const []);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(context.householdTitle),
         actions: [
+          IconButton(
+            key: const ValueKey('household-create-action'),
+            tooltip: context.createHousehold,
+            onPressed: _savingName ? null : _createHousehold,
+            icon: const Icon(Icons.add_home_work_outlined),
+          ),
+          if (activeHousehold?.role == HouseholdRole.owner)
+            IconButton(
+              key: const ValueKey('household-rename-action'),
+              tooltip: context.renameHousehold,
+              onPressed: _savingName ? null : () => _renameHousehold(activeHousehold!),
+              icon: const Icon(Icons.edit_outlined),
+            ),
           IconButton(
             key: const ValueKey('household-accept-invite-action'),
             tooltip: context.joinHousehold,
@@ -93,6 +187,80 @@ class _HouseholdSwitcherScreenState extends ConsumerState<HouseholdSwitcherScree
           );
         },
       ),
+    );
+  }
+}
+
+class _HouseholdNameDialog extends StatefulWidget {
+  const _HouseholdNameDialog({
+    required this.title,
+    this.initialValue,
+  });
+
+  final String title;
+  final String? initialValue;
+
+  @override
+  State<_HouseholdNameDialog> createState() => _HouseholdNameDialogState();
+}
+
+class _HouseholdNameDialogState extends State<_HouseholdNameDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_formKey.currentState?.validate() ?? false) {
+      Navigator.of(context).pop(_controller.text.trim());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          key: const ValueKey('household-name-input'),
+          controller: _controller,
+          autofocus: true,
+          maxLength: 100,
+          textInputAction: TextInputAction.done,
+          decoration: InputDecoration(
+            labelText: context.householdName,
+            prefixIcon: const Icon(Icons.home_work_outlined),
+          ),
+          validator: (value) {
+            if (value?.trim().isEmpty ?? true) {
+              return context.l10n.requiredField;
+            }
+            return null;
+          },
+          onFieldSubmitted: (_) => _submit(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(context.l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: _submit,
+          child: Text(context.l10n.save),
+        ),
+      ],
     );
   }
 }
