@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../../core/network/api_exception.dart';
 import '../data/household_repository.dart';
@@ -64,6 +65,7 @@ class _HouseholdInviteAcceptScreenState extends ConsumerState<HouseholdInviteAcc
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final useMockData = ref.watch(appConfigProvider).useMockData;
     return Scaffold(
       appBar: AppBar(title: Text(context.joinHousehold)),
       body: ListView(
@@ -82,6 +84,20 @@ class _HouseholdInviteAcceptScreenState extends ConsumerState<HouseholdInviteAcc
                     Text(context.joinHousehold, style: Theme.of(context).textTheme.titleLarge),
                     const SizedBox(height: 8),
                     Text(context.invitationCodeHint),
+                    if (useMockData) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: SelectableText(
+                          context.demoInvitationCode(MockHouseholdRepository.demoIncomingInviteCode),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 20),
                     TextFormField(
                       key: const ValueKey('household-invite-code'),
