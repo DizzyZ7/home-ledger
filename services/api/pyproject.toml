@@ -34,10 +34,10 @@ pythonpath = ["."]
 line-length = 100
 target-version = "py312"
 force-exclude = true
+exclude = ["app/api/routes/households.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
 
 [tool.ruff.format]
 quote-style = "double"
-exclude = ["app/api/routes/households.py"]
