@@ -7,8 +7,16 @@ class AppSettingsStore {
   static const _boxName = 'homeledger_settings_v1';
   static const _languageKey = 'language_code';
   static const _themeKey = 'theme_preference';
+  static var _persistenceEnabled = false;
+
+  static void enablePersistence() {
+    _persistenceEnabled = true;
+  }
 
   Future<AppSettings> read() async {
+    if (!_persistenceEnabled) {
+      return const AppSettings.defaults();
+    }
     try {
       final box = await Hive.openBox<String>(_boxName);
       final languageCode = box.get(_languageKey);
@@ -23,6 +31,9 @@ class AppSettingsStore {
   }
 
   Future<void> write(AppSettings settings) async {
+    if (!_persistenceEnabled) {
+      return;
+    }
     try {
       final box = await Hive.openBox<String>(_boxName);
       await box.put(_languageKey, settings.locale.languageCode);
