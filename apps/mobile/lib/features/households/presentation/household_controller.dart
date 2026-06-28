@@ -37,11 +37,12 @@ class HouseholdController extends AsyncNotifier<List<HouseholdSummary>> {
   }
 
   void _applyActiveHousehold(List<HouseholdSummary> households) {
-    final active = households.where((household) => household.isActive).firstOrNull;
-    if (active == null) {
-      return;
+    for (final household in households) {
+      if (household.isActive) {
+        ref.read(activeHouseholdIdProvider.notifier).state = household.id;
+        return;
+      }
     }
-    ref.read(activeHouseholdIdProvider.notifier).state = active.id;
   }
 
   void _invalidateHouseholdData() {
