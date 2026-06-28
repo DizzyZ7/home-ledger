@@ -24,6 +24,16 @@ extension HouseholdLocalizations on BuildContext {
 
   String get householdSwitched => l10n.languageCode == 'ru' ? 'Активный дом изменен.' : 'Active household changed.';
 
+  String get createHousehold => l10n.languageCode == 'ru' ? 'Новый дом' : 'New household';
+
+  String get renameHousehold => l10n.languageCode == 'ru' ? 'Переименовать дом' : 'Rename household';
+
+  String get householdName => l10n.languageCode == 'ru' ? 'Название дома' : 'Household name';
+
+  String get householdCreated => l10n.languageCode == 'ru' ? 'Новый дом создан и выбран.' : 'New household created and selected.';
+
+  String get householdRenamed => l10n.languageCode == 'ru' ? 'Название дома обновлено.' : 'Household name updated.';
+
   String get noHouseholdsTitle => l10n.languageCode == 'ru' ? 'Нет доступных домов' : 'No households available';
 
   String get noHouseholdsBody => l10n.languageCode == 'ru'
