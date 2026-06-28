@@ -77,14 +77,20 @@ class _ItemDetailScreenState extends ConsumerState<ItemDetailScreen> {
       loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (_, __) => _UnavailableItemState(onBack: context.pop),
       data: (data) {
-        final item = data.where((candidate) => candidate.id == widget.itemId).firstOrNull;
+        HomeItem? item;
+        for (final candidate in data) {
+          if (candidate.id == widget.itemId) {
+            item = candidate;
+            break;
+          }
+        }
         if (item == null) {
           return _UnavailableItemState(onBack: context.pop);
         }
         return _ItemDetails(
           item: item,
           archiving: _archiving,
-          onArchive: () => _archive(item),
+          onArchive: () => _archive(item!),
         );
       },
     );
