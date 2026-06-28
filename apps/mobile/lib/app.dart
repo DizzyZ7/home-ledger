@@ -16,6 +16,7 @@ import 'features/items/presentation/item_form_screen.dart';
 import 'features/items/presentation/warranty_screen.dart';
 import 'features/maintenance/domain/maintenance_task.dart';
 import 'features/maintenance/presentation/maintenance_form_screen.dart';
+import 'features/maintenance/presentation/maintenance_history_screen.dart';
 import 'features/maintenance/presentation/maintenance_screen.dart';
 
 final localeProvider = StateProvider<Locale>((ref) => const Locale('ru'));
@@ -56,6 +57,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'warranties',
             builder: (context, state) => const WarrantyScreen(),
+          ),
+          GoRoute(
+            path: 'maintenance/history',
+            builder: (context, state) => const MaintenanceHistoryScreen(),
           ),
           GoRoute(
             path: 'maintenance/new',

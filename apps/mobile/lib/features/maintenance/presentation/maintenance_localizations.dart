@@ -4,6 +4,7 @@ extension MaintenanceLocalizations on AppLocalizations {
   bool get _isRussian => languageCode == 'ru';
 
   String get maintenance => _isRussian ? 'Обслуживание' : 'Maintenance';
+  String get maintenanceHistory => _isRussian ? 'История обслуживания' : 'Maintenance history';
   String get addMaintenance => _isRussian ? 'Добавить задачу' : 'Add task';
   String get editMaintenance => _isRussian ? 'Редактировать задачу' : 'Edit task';
   String get taskTitle => _isRussian ? 'Что нужно сделать' : 'Task title';
@@ -27,9 +28,14 @@ extension MaintenanceLocalizations on AppLocalizations {
   String get noMaintenanceForItem => _isRussian
       ? 'Для этой вещи пока нет задач обслуживания.'
       : 'There are no maintenance tasks for this item yet.';
+  String get noMaintenanceHistoryTitle => _isRussian ? 'История пока пуста' : 'No completed maintenance yet';
+  String get noMaintenanceHistoryBody => _isRussian
+      ? 'После выполнения задачи здесь появится запись с датой и вещью.'
+      : 'Completed tasks will appear here with their date and linked item.';
   String get dueToday => _isRussian ? 'Нужно выполнить сегодня' : 'Due today';
 
   String itemContext(String itemName) => _isRussian ? 'Вещь: $itemName' : 'Item: $itemName';
+  String completedAt(String timestamp) => _isRussian ? 'Выполнено: $timestamp' : 'Completed: $timestamp';
   String dueInDays(int days) => _isRussian ? 'Через $days дн.' : 'Due in $days days';
   String overdueBy(int days) => _isRussian ? 'Просрочено на $days дн.' : '$days days overdue';
 }
