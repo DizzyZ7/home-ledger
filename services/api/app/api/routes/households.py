@@ -58,6 +58,11 @@ def _invite_response(invite: HouseholdInvite) -> HouseholdInviteResponse:
     )
 
 
+def _invite_is_expired(expires_at: datetime, now: datetime) -> bool:
+    normalized_expiry = expires_at if expires_at.tzinfo is not None else expires_at.replace(tzinfo=UTC)
+    return normalized_expiry <= now
+
+
 @router.get("", response_model=list[HouseholdSummaryResponse])
 def list_households(session: DbSession, user: CurrentUser) -> list[HouseholdSummaryResponse]:
     memberships = list(
@@ -198,17 +203,18 @@ def revoke_current_household_invite(
 ) -> None:
     owner_membership = require_active_household_owner(session, user.id)
     invite = session.get(HouseholdInvite, invite_id)
+    now = datetime.now(UTC)
     if invite is None or invite.household_id != owner_membership.household_id:
         raise HTTPException(
             status_code=404,
             detail={"code": "invite_not_found", "message": "Invitation was not found."},
         )
-    if invite.accepted_at is not None or invite.revoked_at is not None or invite.expires_at <= datetime.now(UTC):
+    if invite.accepted_at is not None or invite.revoked_at is not None or _invite_is_expired(invite.expires_at, now):
         raise HTTPException(
             status_code=409,
             detail={"code": "invite_not_active", "message": "Invitation is no longer active."},
         )
-    invite.revoked_at = datetime.now(UTC)
+    invite.revoked_at = now
     session.commit()
 
 
@@ -236,7 +242,7 @@ def accept_household_invite(
         invite is None
         or invite.accepted_at is not None
         or invite.revoked_at is not None
-        or invite.expires_at <= now
+        or _invite_is_expired(invite.expires_at, now)
     ):
         raise HTTPException(
             status_code=404,
