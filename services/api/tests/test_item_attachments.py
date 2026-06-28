@@ -104,11 +104,7 @@ def test_attachment_endpoints_hide_other_households_data(client, attachment_dire
     )
 
 
-def test_attachment_upload_rejects_unsupported_type_and_oversized_file(
-    client,
-    attachment_directory,
-    monkeypatch,
-):
+def test_attachment_upload_rejects_invalid_files(client, attachment_directory, monkeypatch):
     token = _access_token(client, email="attachment-owner@example.com")
     headers = {"Authorization": f"Bearer {token}"}
     item = _create_item(client, headers)
@@ -120,12 +116,28 @@ def test_attachment_upload_rejects_unsupported_type_and_oversized_file(
     )
     assert unsupported.status_code == 415
 
+    mismatched = client.post(
+        f"/api/v1/items/{item['id']}/attachments",
+        headers=headers,
+        files={"file": ("receipt.pdf", b"not a pdf", "application/pdf")},
+    )
+    assert mismatched.status_code == 415
+    assert mismatched.json()["detail"]["code"] == "attachment_signature_mismatch"
+
+    empty = client.post(
+        f"/api/v1/items/{item['id']}/attachments",
+        headers=headers,
+        files={"file": ("empty.pdf", b"", "application/pdf")},
+    )
+    assert empty.status_code == 422
+    assert empty.json()["detail"]["code"] == "attachment_empty"
+
     monkeypatch.setenv("ATTACHMENT_MAX_BYTES", "5")
     get_settings.cache_clear()
     too_large = client.post(
         f"/api/v1/items/{item['id']}/attachments",
         headers=headers,
-        files={"file": ("receipt.pdf", b"123456", "application/pdf")},
+        files={"file": ("receipt.pdf", b"%PDF-123456", "application/pdf")},
     )
     assert too_large.status_code == 413
     assert list(attachment_directory.iterdir()) == []
