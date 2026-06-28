@@ -68,9 +68,16 @@ class TokenStorage {
     required String refreshToken,
     required StoredSession session,
   }) async {
+    await saveTokens(accessToken: accessToken, refreshToken: refreshToken);
+    await _storage.write(key: _sessionKey, value: jsonEncode(session.toJson()));
+  }
+
+  Future<void> saveTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
     await _storage.write(key: _accessKey, value: accessToken);
     await _storage.write(key: _refreshKey, value: refreshToken);
-    await _storage.write(key: _sessionKey, value: jsonEncode(session.toJson()));
   }
 
   Future<String?> readAccessToken() => _storage.read(key: _accessKey);
