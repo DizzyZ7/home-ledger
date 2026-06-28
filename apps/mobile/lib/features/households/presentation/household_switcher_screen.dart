@@ -16,9 +16,10 @@ class HouseholdSwitcherScreen extends ConsumerStatefulWidget {
 
 class _HouseholdSwitcherScreenState extends ConsumerState<HouseholdSwitcherScreen> {
   String? _selectingId;
+  var _savingName = false;
 
   Future<void> _select(HouseholdSummary household) async {
-    if (household.isActive || _selectingId != null) {
+    if (household.isActive || _selectingId != null || _savingName) {
       return;
     }
 
@@ -45,14 +46,151 @@ class _HouseholdSwitcherScreenState extends ConsumerState<HouseholdSwitcherScree
     }
   }
 
+  Future<void> _createHousehold() async {
+    final name = await _requestHouseholdName(title: context.createHousehold);
+    if (name == null || !mounted) {
+      return;
+    }
+
+    setState(() => _savingName = true);
+    try {
+      await ref.read(householdControllerProvider.notifier).createHousehold(name);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.householdCreated)),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.errorGeneric)),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _savingName = false);
+      }
+    }
+  }
+
+  Future<void> _renameHousehold(HouseholdSummary household) async {
+    final name = await _requestHouseholdName(
+      title: context.renameHousehold,
+      initialValue: household.name,
+    );
+    if (name == null || !mounted) {
+      return;
+    }
+
+    setState(() => _savingName = true);
+    try {
+      await ref.read(householdControllerProvider.notifier).renameCurrentHousehold(name);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.householdRenamed)),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.errorGeneric)),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _savingName = false);
+      }
+    }
+  }
+
+  Future<String?> _requestHouseholdName({
+    required String title,
+    String? initialValue,
+  }) async {
+    final formKey = GlobalKey<FormState>();
+    final controller = TextEditingController(text: initialValue);
+    try {
+      return await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(title),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              key: const ValueKey('household-name-input'),
+              controller: controller,
+              autofocus: true,
+              maxLength: 100,
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                labelText: dialogContext.householdName,
+                prefixIcon: const Icon(Icons.home_work_outlined),
+              ),
+              validator: (value) {
+                if ((value?.trim().isEmpty ?? true)) {
+                  return dialogContext.l10n.requiredField;
+                }
+                return null;
+              },
+              onFieldSubmitted: (_) {
+                if (formKey.currentState?.validate() ?? false) {
+                  Navigator.of(dialogContext).pop(controller.text.trim());
+                }
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(dialogContext.l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (formKey.currentState?.validate() ?? false) {
+                  Navigator.of(dialogContext).pop(controller.text.trim());
+                }
+              },
+              child: Text(dialogContext.l10n.save),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      controller.dispose();
+    }
+  }
+
+  HouseholdSummary? _activeHousehold(List<HouseholdSummary> households) {
+    for (final household in households) {
+      if (household.isActive) {
+        return household;
+      }
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final households = ref.watch(householdControllerProvider);
+    final activeHousehold = _activeHousehold(households.valueOrNull ?? const []);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(context.householdTitle),
         actions: [
+          IconButton(
+            key: const ValueKey('household-create-action'),
+            tooltip: context.createHousehold,
+            onPressed: _savingName ? null : _createHousehold,
+            icon: const Icon(Icons.add_home_work_outlined),
+          ),
+          if (activeHousehold?.role == HouseholdRole.owner)
+            IconButton(
+              key: const ValueKey('household-rename-action'),
+              tooltip: context.renameHousehold,
+              onPressed: _savingName ? null : () => _renameHousehold(activeHousehold!),
+              icon: const Icon(Icons.edit_outlined),
+            ),
           IconButton(
             key: const ValueKey('household-members-action'),
             tooltip: context.householdMembersTitle,
