@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/maintenance_repository.dart';
+import '../../../core/data/household_scoped_repositories.dart';
 import '../domain/maintenance_task.dart';
 
 final maintenanceListControllerProvider =
@@ -13,24 +13,24 @@ final maintenanceListControllerProvider =
 class MaintenanceListController extends AsyncNotifier<List<MaintenanceTask>> {
   @override
   FutureOr<List<MaintenanceTask>> build() {
-    return ref.read(maintenanceRepositoryProvider).loadTasks();
+    return ref.read(householdScopedMaintenanceRepositoryProvider).loadTasks();
   }
 
   Future<void> refresh() async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => ref.read(maintenanceRepositoryProvider).loadTasks(),
+      () => ref.read(householdScopedMaintenanceRepositoryProvider).loadTasks(),
     );
   }
 
   Future<void> createTask(MaintenanceTask task) async {
-    final created = await ref.read(maintenanceRepositoryProvider).createTask(task);
+    final created = await ref.read(householdScopedMaintenanceRepositoryProvider).createTask(task);
     final current = state.valueOrNull ?? const <MaintenanceTask>[];
     state = AsyncData(_sort([...current, created]));
   }
 
   Future<void> updateTask(MaintenanceTask task) async {
-    final updatedTask = await ref.read(maintenanceRepositoryProvider).updateTask(task);
+    final updatedTask = await ref.read(householdScopedMaintenanceRepositoryProvider).updateTask(task);
     final current = state.valueOrNull ?? const <MaintenanceTask>[];
     state = AsyncData(
       _sort([
@@ -41,7 +41,7 @@ class MaintenanceListController extends AsyncNotifier<List<MaintenanceTask>> {
   }
 
   Future<void> completeTask(String taskId) async {
-    final completed = await ref.read(maintenanceRepositoryProvider).completeTask(taskId);
+    final completed = await ref.read(householdScopedMaintenanceRepositoryProvider).completeTask(taskId);
     final current = state.valueOrNull ?? const <MaintenanceTask>[];
     state = AsyncData(
       _sort([
