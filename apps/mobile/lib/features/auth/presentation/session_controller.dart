@@ -15,6 +15,7 @@ import '../../maintenance/presentation/maintenance_history_controller.dart';
 import '../../maintenance/presentation/maintenance_list_controller.dart';
 import '../data/auth_repository.dart';
 import '../domain/user_session.dart';
+import 'active_user_provider.dart';
 
 final sessionControllerProvider =
     AsyncNotifierProvider<SessionController, UserSession?>(SessionController.new);
@@ -24,6 +25,7 @@ class SessionController extends AsyncNotifier<UserSession?> {
   FutureOr<UserSession?> build() async {
     final config = ref.read(appConfigProvider);
     if (config.useMockData) {
+      _activateUser(UserSession.demo);
       return UserSession.demo;
     }
 
@@ -39,18 +41,22 @@ class SessionController extends AsyncNotifier<UserSession?> {
       return null;
     }
 
-    return UserSession(
+    final session = UserSession(
       userId: storedSession.userId,
       email: storedSession.email,
       displayName: storedSession.displayName,
     );
+    _activateUser(session);
+    return session;
   }
 
   Future<void> login({required String email, required String password}) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(
+    final result = await AsyncValue.guard(
       () => ref.read(authRepositoryProvider).login(email: email, password: password),
     );
+    state = result;
+    result.whenData(_activateUser);
   }
 
   Future<void> register({
@@ -59,18 +65,22 @@ class SessionController extends AsyncNotifier<UserSession?> {
     required String displayName,
   }) async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(
+    final result = await AsyncValue.guard(
       () => ref.read(authRepositoryProvider).register(
             email: email,
             password: password,
             displayName: displayName,
           ),
     );
+    state = result;
+    result.whenData(_activateUser);
   }
 
   Future<void> signOut() async {
+    try {
+      await ref.read(tokenStorageProvider).clear();
+    } on Object {}
     await Future.wait([
-      ref.read(tokenStorageProvider).clear(),
       HomeItemCache.clearAll(),
       MaintenanceTaskCache.clearAll(),
     ]);
@@ -78,7 +88,12 @@ class SessionController extends AsyncNotifier<UserSession?> {
     state = const AsyncData(null);
   }
 
+  void _activateUser(UserSession session) {
+    ref.read(activeUserIdProvider.notifier).state = session.userId;
+  }
+
   void _resetSessionBoundState() {
+    ref.read(activeUserIdProvider.notifier).state = null;
     ref.read(activeHouseholdIdProvider.notifier).state = null;
     ref.invalidate(householdControllerProvider);
     ref.invalidate(itemListControllerProvider);
