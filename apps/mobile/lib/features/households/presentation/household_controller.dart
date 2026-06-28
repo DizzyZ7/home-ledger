@@ -11,6 +11,7 @@ import '../../maintenance/presentation/maintenance_list_controller.dart';
 import '../data/household_repository.dart';
 import '../domain/household_summary.dart';
 import 'active_household_provider.dart';
+import 'current_household_provider.dart';
 
 final householdControllerProvider =
     AsyncNotifierProvider<HouseholdController, List<HouseholdSummary>>(HouseholdController.new);
@@ -38,6 +39,29 @@ class HouseholdController extends AsyncNotifier<List<HouseholdSummary>> {
     }
   }
 
+  Future<void> createHousehold(String name) async {
+    final created = await ref.read(householdRepositoryProvider).createHousehold(name);
+    final current = state.valueOrNull ?? const <HouseholdSummary>[];
+    final updated = [
+      for (final household in current) household.copyWith(isActive: false),
+      created,
+    ];
+    state = AsyncData(updated);
+    if (_applyActiveHousehold(updated)) {
+      _invalidateHouseholdData();
+    }
+  }
+
+  Future<void> renameCurrentHousehold(String name) async {
+    final renamed = await ref.read(householdRepositoryProvider).renameCurrentHousehold(name);
+    final current = state.valueOrNull ?? const <HouseholdSummary>[];
+    state = AsyncData([
+      for (final household in current)
+        if (household.id == renamed.id) renamed else household,
+    ]);
+    ref.invalidate(currentHouseholdProvider);
+  }
+
   bool _applyActiveHousehold(List<HouseholdSummary> households) {
     for (final household in households) {
       if (household.isActive) {
@@ -60,5 +84,6 @@ class HouseholdController extends AsyncNotifier<List<HouseholdSummary>> {
     ref.invalidate(warrantyOverviewProvider);
     ref.invalidate(maintenanceListControllerProvider);
     ref.invalidate(maintenanceHistoryProvider(null));
+    ref.invalidate(currentHouseholdProvider);
   }
 }
