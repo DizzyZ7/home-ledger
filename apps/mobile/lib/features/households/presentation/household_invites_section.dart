@@ -30,9 +30,16 @@ class _HouseholdInvitesSectionState extends ConsumerState<HouseholdInvitesSectio
     if (_creating) {
       return;
     }
+    final expiresInHours = await _selectInvitationLifetime();
+    if (expiresInHours == null || !mounted) {
+      return;
+    }
+
     setState(() => _creating = true);
     try {
-      final created = await ref.read(householdRepositoryProvider).createInvite();
+      final created = await ref
+          .read(householdRepositoryProvider)
+          .createInvite(expiresInHours: expiresInHours);
       ref.invalidate(householdInvitesProvider);
       if (!mounted) {
         return;
@@ -57,6 +64,38 @@ class _HouseholdInvitesSectionState extends ConsumerState<HouseholdInvitesSectio
         setState(() => _creating = false);
       }
     }
+  }
+
+  Future<int?> _selectInvitationLifetime() {
+    return showDialog<int>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(dialogContext.invitationLifetime),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _InvitationLifetimeOption(
+              hours: 24,
+              label: dialogContext.invitationLifetime24Hours,
+            ),
+            _InvitationLifetimeOption(
+              hours: 72,
+              label: dialogContext.invitationLifetime72Hours,
+            ),
+            _InvitationLifetimeOption(
+              hours: 168,
+              label: dialogContext.invitationLifetime168Hours,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(dialogContext.l10n.cancel),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _revoke(HouseholdInvite invite) async {
@@ -174,6 +213,27 @@ class _HouseholdInvitesSectionState extends ConsumerState<HouseholdInvitesSectio
           ],
         ),
       ),
+    );
+  }
+}
+
+class _InvitationLifetimeOption extends StatelessWidget {
+  const _InvitationLifetimeOption({
+    required this.hours,
+    required this.label,
+  });
+
+  final int hours;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      key: ValueKey('household-invite-lifetime-$hours'),
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.schedule_outlined),
+      title: Text(label),
+      onTap: () => Navigator.of(context).pop(hours),
     );
   }
 }
