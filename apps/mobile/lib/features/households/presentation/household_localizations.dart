@@ -29,4 +29,26 @@ extension HouseholdLocalizations on BuildContext {
   String get noHouseholdsBody => l10n.languageCode == 'ru'
       ? 'Создайте аккаунт заново или попросите владельца добавить вас в общий дом.'
       : 'Create an account again or ask an owner to add you to a shared household.';
+
+  String get householdMembersTitle => l10n.languageCode == 'ru' ? 'Участники дома' : 'Household members';
+
+  String get addHouseholdMember => l10n.languageCode == 'ru' ? 'Добавить участника' : 'Add member';
+
+  String get memberEmailHint => l10n.languageCode == 'ru' ? 'Email зарегистрированного пользователя' : 'Registered user email';
+
+  String get householdMemberAdded => l10n.languageCode == 'ru' ? 'Участник добавлен.' : 'Member added.';
+
+  String get householdMemberRemoved => l10n.languageCode == 'ru' ? 'Участник удален.' : 'Member removed.';
+
+  String get removeHouseholdMember => l10n.languageCode == 'ru' ? 'Удалить участника' : 'Remove member';
+
+  String get removeMemberConfirmTitle => l10n.languageCode == 'ru' ? 'Удалить участника?' : 'Remove this member?';
+
+  String get removeMemberConfirmBody => l10n.languageCode == 'ru'
+      ? 'Участник потеряет доступ к вещам, гарантиям и обслуживанию этого дома.'
+      : 'This person will lose access to this household’s items, warranties, and maintenance.';
+
+  String get householdMembersReadOnly => l10n.languageCode == 'ru'
+      ? 'Только владелец дома может менять состав участников.'
+      : 'Only the household owner can manage members.';
 }
