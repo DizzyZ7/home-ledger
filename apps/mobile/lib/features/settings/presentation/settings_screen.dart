@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../../core/settings/app_settings.dart';
 import '../../../core/settings/app_settings_controller.dart';
 import '../../auth/presentation/session_controller.dart';
@@ -23,22 +24,24 @@ class SettingsScreen extends ConsumerWidget {
         children: [
           _SectionTitle(text: context.appearanceSection),
           Card(
-            child: Column(
-              children: [
-                for (final preference in AppThemePreference.values)
-                  RadioListTile<AppThemePreference>(
-                    key: ValueKey('settings-theme-${preference.name}'),
-                    value: preference,
-                    groupValue: settings.themePreference,
-                    title: Text(context.themeLabel(preference)),
-                    secondary: Icon(_themeIcon(preference)),
-                    onChanged: (value) {
-                      if (value != null) {
-                        controller.setThemePreference(value);
-                      }
-                    },
-                  ),
-              ],
+            child: RadioGroup<AppThemePreference>(
+              groupValue: settings.themePreference,
+              onChanged: (value) {
+                if (value != null) {
+                  controller.setThemePreference(value);
+                }
+              },
+              child: Column(
+                children: [
+                  for (final preference in AppThemePreference.values)
+                    RadioListTile<AppThemePreference>(
+                      key: ValueKey('settings-theme-${preference.name}'),
+                      value: preference,
+                      title: Text(context.themeLabel(preference)),
+                      secondary: Icon(_themeIcon(preference)),
+                    ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 20),
