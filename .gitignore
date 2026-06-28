@@ -12,6 +12,7 @@ __pycache__/
 .venv/
 coverage.xml
 htmlcov/
+services/api/data/attachments/
 
 # Flutter / Dart
 .dart_tool/
