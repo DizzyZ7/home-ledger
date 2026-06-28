@@ -50,7 +50,17 @@ class _HouseholdSwitcherScreenState extends ConsumerState<HouseholdSwitcherScree
     final households = ref.watch(householdControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(context.householdTitle)),
+      appBar: AppBar(
+        title: Text(context.householdTitle),
+        actions: [
+          IconButton(
+            key: const ValueKey('household-members-action'),
+            tooltip: context.householdMembersTitle,
+            icon: const Icon(Icons.group_outlined),
+            onPressed: () => context.push('/households/members'),
+          ),
+        ],
+      ),
       body: households.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => _HouseholdErrorState(
