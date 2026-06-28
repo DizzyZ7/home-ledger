@@ -14,7 +14,10 @@ void main() {
     expect(find.byKey(const ValueKey('warranty-status-demo-router')), findsOneWidget);
     expect(find.byKey(const ValueKey('warranty-status-demo-washer')), findsNothing);
 
-    await tester.tap(find.byKey(const ValueKey('inventory-warranty-filter-protected')));
+    final protectedFilter = find.byKey(const ValueKey('inventory-warranty-filter-protected'));
+    await tester.ensureVisible(protectedFilter);
+    await tester.pumpAndSettle();
+    await tester.tap(protectedFilter);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('warranty-status-demo-router')), findsNothing);
