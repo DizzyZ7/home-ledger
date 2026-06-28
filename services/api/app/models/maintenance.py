@@ -26,3 +26,20 @@ class MaintenanceTask(TimestampMixin, Base):
     @property
     def item_name(self) -> str:
         return self.item.name
+
+
+class MaintenanceCompletion(TimestampMixin, Base):
+    __tablename__ = "maintenance_completions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    household_id: Mapped[str] = mapped_column(ForeignKey("households.id", ondelete="CASCADE"), index=True, nullable=False)
+    item_id: Mapped[str] = mapped_column(ForeignKey("items.id", ondelete="CASCADE"), index=True, nullable=False)
+    task_id: Mapped[str] = mapped_column(ForeignKey("maintenance_tasks.id", ondelete="CASCADE"), index=True, nullable=False)
+    task_title: Mapped[str] = mapped_column(String(140), nullable=False)
+    completed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True, nullable=False)
+
+    item = relationship("HomeItem")
+
+    @property
+    def item_name(self) -> str:
+        return self.item.name

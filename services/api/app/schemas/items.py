@@ -66,3 +66,15 @@ class MaintenanceTaskResponse(APIModel):
     completed_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
+
+class MaintenanceCompletionResponse(APIModel):
+    id: str
+    household_id: str
+    item_id: str
+    item_name: str
+    task_id: str
+    task_title: str
+    completed_at: datetime
+    created_at: datetime
+    updated_at: datetime
