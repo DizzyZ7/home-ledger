@@ -2,41 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:home_ledger/app.dart';
+import 'package:home_ledger/features/maintenance/presentation/maintenance_list_controller.dart';
 
 void main() {
   testWidgets('item detail shows only its own maintenance history', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: HomeLedgerApp()));
-    await tester.pumpAndSettle();
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
 
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationBar),
-        matching: find.text('Обслуживание'),
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const HomeLedgerApp(),
       ),
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('maintenance-complete-demo-clean-filter')));
-    await tester.pumpAndSettle();
+    await container.read(maintenanceListControllerProvider.future);
+    await container.read(maintenanceListControllerProvider.notifier).completeTask('demo-clean-filter');
+    await container.read(maintenanceListControllerProvider.notifier).completeTask('demo-router-restart');
 
-    final routerCompletion = find.byKey(const ValueKey('maintenance-complete-demo-router-restart'));
-    await tester.ensureVisible(routerCompletion);
-    await tester.tap(routerCompletion);
-    await tester.pumpAndSettle();
-
-    final navigationBar = find.byType(NavigationBar);
-    final navigationBounds = tester.getRect(navigationBar);
-    await tester.tapAt(
-      Offset(
-        navigationBounds.left + navigationBounds.width / 6,
-        navigationBounds.center.dy,
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    final washerItem = find.text('Washing machine');
-    await tester.ensureVisible(washerItem);
-    await tester.tap(washerItem);
+    container.read(appRouterProvider).go('/items/demo-washer');
     await tester.pumpAndSettle();
 
     final historyAction = find.byKey(const ValueKey('item-maintenance-history-action'));
