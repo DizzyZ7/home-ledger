@@ -25,7 +25,11 @@ def active_household_membership(session: DbSession, user_id: str) -> HouseholdMe
             return membership
 
     membership = session.scalar(
-        select(HouseholdMember).options(selectinload(HouseholdMember.household)).where(HouseholdMember.user_id == user.id).join(HouseholdMember.household).order_by(Household.created_at.asc())
+        select(HouseholdMember)
+        .options(selectinload(HouseholdMember.household))
+        .where(HouseholdMember.user_id == user.id)
+        .join(HouseholdMember.household)
+        .order_by(Household.created_at.asc())
     )
     if membership is None:
         raise HTTPException(
@@ -46,7 +50,7 @@ def require_active_household_owner(session: DbSession, user_id: str) -> Househol
             status_code=403,
             detail={
                 "code": "household_owner_required",
-                "message": "Only the household owner can manage members.",
+                "message": "Only the household owner can manage members and invitations.",
             },
         )
     return membership
