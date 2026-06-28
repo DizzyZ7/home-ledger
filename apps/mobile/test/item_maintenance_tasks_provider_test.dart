@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:home_ledger/features/maintenance/data/maintenance_repository.dart';
+import 'package:home_ledger/features/maintenance/domain/maintenance_completion.dart';
 import 'package:home_ledger/features/maintenance/domain/maintenance_task.dart';
 import 'package:home_ledger/features/maintenance/presentation/item_maintenance_tasks_provider.dart';
 
@@ -21,6 +22,9 @@ class ItemScopedMaintenanceRepository implements MaintenanceRepository {
       itemId == null ? _tasks : _tasks.where((task) => task.itemId == itemId),
     );
   }
+
+  @override
+  Future<List<MaintenanceCompletion>> loadHistory({String? itemId}) async => const [];
 
   @override
   Future<MaintenanceTask> updateTask(MaintenanceTask task) async => task;
