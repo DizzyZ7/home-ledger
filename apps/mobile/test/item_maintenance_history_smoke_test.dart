@@ -24,10 +24,19 @@ void main() {
     await tester.tap(routerCompletion);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('navigation-inventory')));
+    final navigationBar = find.byType(NavigationBar);
+    final navigationBounds = tester.getRect(navigationBar);
+    await tester.tapAt(
+      Offset(
+        navigationBounds.left + navigationBounds.width / 6,
+        navigationBounds.center.dy,
+      ),
+    );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Washing machine').first);
+    final washerItem = find.text('Washing machine');
+    await tester.ensureVisible(washerItem);
+    await tester.tap(washerItem);
     await tester.pumpAndSettle();
 
     final historyAction = find.byKey(const ValueKey('item-maintenance-history-action'));
