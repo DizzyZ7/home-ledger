@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:home_ledger/app.dart';
 
 void main() {
-  testWidgets('mock workspace shows and creates maintenance from a selected inventory item', (tester) async {
+  testWidgets('mock workspace shows item receipts and creates maintenance', (tester) async {
     await tester.pumpWidget(const ProviderScope(child: HomeLedgerApp()));
     await tester.pumpAndSettle();
 
@@ -13,6 +13,9 @@ void main() {
     expect(find.text('Карточка вещи'), findsOneWidget);
     expect(find.text('Wi-Fi router'), findsOneWidget);
     expect(find.text('Серийный номер'), findsOneWidget);
+    expect(find.text('Чеки и файлы'), findsOneWidget);
+    expect(find.text('Чеков и файлов пока нет'), findsOneWidget);
+    expect(find.byKey(const ValueKey('item-attachment-upload-action')), findsOneWidget);
     expect(find.text('Обслуживание'), findsOneWidget);
     expect(find.text('Review router firmware'), findsOneWidget);
     expect(find.text('Clean the washing machine filter'), findsNothing);
