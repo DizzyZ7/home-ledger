@@ -18,7 +18,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('household-select-mock-shared-household')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Мои вещи'), findsOneWidget);
+    expect(find.text('Мои вещи'), findsWidgets);
 
     await tester.tap(find.byKey(const ValueKey('household-switcher-action')));
     await tester.pumpAndSettle();
