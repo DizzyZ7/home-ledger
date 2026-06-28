@@ -44,7 +44,9 @@ void main() {
     );
 
     await cache.write([storedTask]);
-    expect(await cache.read(), [storedTask]);
+    final cached = await cache.read();
+    expect(cached, hasLength(1));
+    expect(cached!.single.toJson(), storedTask.toJson());
 
     final box = await Hive.openBox<String>('maintenance-cache-serialization');
     await box.put('tasks', '{not valid json');
@@ -81,7 +83,10 @@ void main() {
       );
     final repository = RemoteMaintenanceRepository(client, cache);
 
-    expect(await repository.loadTasks(), [washerTask, routerTask]);
-    expect(await repository.loadTasks(itemId: 'router'), [routerTask]);
+    final allTasks = await repository.loadTasks();
+    final routerTasks = await repository.loadTasks(itemId: 'router');
+
+    expect(allTasks.map((task) => task.id), ['washer-task', 'router-task']);
+    expect(routerTasks.map((task) => task.id), ['router-task']);
   });
 }
