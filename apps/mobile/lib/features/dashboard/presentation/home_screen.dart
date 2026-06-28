@@ -8,6 +8,7 @@ import '../../../core/localization/app_localizations.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../items/domain/home_item.dart';
 import '../../items/presentation/item_localizations.dart';
+import '../../items/presentation/warranty_status_badge.dart';
 import 'dashboard_attention_summary.dart';
 import 'inventory_search.dart';
 import 'item_list_controller.dart';
@@ -105,7 +106,19 @@ class _ItemTile extends StatelessWidget {
         child: ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           leading: CircleAvatar(child: Text(avatarText)),
-          title: Text(item.name),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  item.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              WarrantyStatusBadge(item: item),
+            ],
+          ),
           subtitle: Text([if (item.location != null) item.location!, warrantyText].join(' · ')),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/items/${item.id}'),
