@@ -52,7 +52,9 @@ def _member_response(membership: HouseholdMember) -> HouseholdMemberResponse:
 @router.get("", response_model=list[HouseholdSummaryResponse])
 def list_households(session: DbSession, user: CurrentUser) -> list[HouseholdSummaryResponse]:
     memberships = list(
-        session.scalars(select(HouseholdMember).options(selectinload(HouseholdMember.household)).join(HouseholdMember.household).where(HouseholdMember.user_id == user.id).order_by(Household.created_at.asc()))
+        session.scalars(
+            select(HouseholdMember).options(selectinload(HouseholdMember.household)).join(HouseholdMember.household).where(HouseholdMember.user_id == user.id).order_by(Household.created_at.asc())
+        )
     )
     return [_summary_response(membership, user.active_household_id) for membership in memberships]
 
