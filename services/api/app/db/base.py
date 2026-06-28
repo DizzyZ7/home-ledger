@@ -6,6 +6,7 @@ class Base(DeclarativeBase):
 
 
 # Import models so Alembic and tests register all metadata.
+from app.models.document import ItemDocument  # noqa: E402, F401
 from app.models.household import Household, HouseholdMember  # noqa: E402, F401
 from app.models.item import HomeItem  # noqa: E402, F401
 from app.models.maintenance import MaintenanceCompletion, MaintenanceTask  # noqa: E402, F401
