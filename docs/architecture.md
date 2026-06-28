@@ -58,7 +58,7 @@ Authentication uses short-lived access tokens and longer-lived refresh tokens. P
 - API route tests use a SQLite test database and dependency overrides.
 - Auth, ownership checks, pagination and validation are covered by pytest.
 - Flutter controller tests use repository fakes.
-- Flutter cache tests verify household and user isolation; secure storage tests cover session restore, invalid session cleanup and full sign-out cleanup.
+- Flutter cache tests verify household and user isolation; secure storage tests cover session restore, invalid session cleanup and credential/session deletion.
 - A widget smoke test verifies that the dashboard has a usable empty/loading-ready render path.
 - GitHub Actions runs tests and static analysis on pull requests and pushes.
 
