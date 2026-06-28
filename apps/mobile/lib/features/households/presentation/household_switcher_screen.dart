@@ -19,19 +19,12 @@ class _HouseholdSwitcherScreenState extends ConsumerState<HouseholdSwitcherScree
   var _savingName = false;
 
   Future<void> _select(HouseholdSummary household) async {
-    if (household.isActive || _selectingId != null || _savingName) {
-      return;
-    }
-
+    if (household.isActive || _selectingId != null || _savingName) return;
     setState(() => _selectingId = household.id);
     try {
       await ref.read(householdControllerProvider.notifier).selectHousehold(household.id);
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.householdSwitched)),
-      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.householdSwitched)));
       context.pop();
     } catch (_) {
       if (mounted) {
@@ -40,25 +33,18 @@ class _HouseholdSwitcherScreenState extends ConsumerState<HouseholdSwitcherScree
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _selectingId = null);
-      }
+      if (mounted) setState(() => _selectingId = null);
     }
   }
 
   Future<void> _createHousehold() async {
     final name = await _requestHouseholdName(title: context.createHousehold);
-    if (name == null || !mounted) {
-      return;
-    }
-
+    if (name == null || !mounted) return;
     setState(() => _savingName = true);
     try {
       await ref.read(householdControllerProvider.notifier).createHousehold(name);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.householdCreated)),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.householdCreated)));
       }
     } catch (_) {
       if (mounted) {
@@ -67,28 +53,18 @@ class _HouseholdSwitcherScreenState extends ConsumerState<HouseholdSwitcherScree
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _savingName = false);
-      }
+      if (mounted) setState(() => _savingName = false);
     }
   }
 
   Future<void> _renameHousehold(HouseholdSummary household) async {
-    final name = await _requestHouseholdName(
-      title: context.renameHousehold,
-      initialValue: household.name,
-    );
-    if (name == null || !mounted) {
-      return;
-    }
-
+    final name = await _requestHouseholdName(title: context.renameHousehold, initialValue: household.name);
+    if (name == null || !mounted) return;
     setState(() => _savingName = true);
     try {
       await ref.read(householdControllerProvider.notifier).renameCurrentHousehold(name);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(context.householdRenamed)),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.householdRenamed)));
       }
     } catch (_) {
       if (mounted) {
@@ -97,30 +73,20 @@ class _HouseholdSwitcherScreenState extends ConsumerState<HouseholdSwitcherScree
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _savingName = false);
-      }
+      if (mounted) setState(() => _savingName = false);
     }
   }
 
-  Future<String?> _requestHouseholdName({
-    required String title,
-    String? initialValue,
-  }) {
+  Future<String?> _requestHouseholdName({required String title, String? initialValue}) {
     return showDialog<String>(
       context: context,
-      builder: (_) => _HouseholdNameDialog(
-        title: title,
-        initialValue: initialValue,
-      ),
+      builder: (_) => _HouseholdNameDialog(title: title, initialValue: initialValue),
     );
   }
 
   HouseholdSummary? _activeHousehold(List<HouseholdSummary> households) {
     for (final household in households) {
-      if (household.isActive) {
-        return household;
-      }
+      if (household.isActive) return household;
     }
     return null;
   }
@@ -129,7 +95,6 @@ class _HouseholdSwitcherScreenState extends ConsumerState<HouseholdSwitcherScree
   Widget build(BuildContext context) {
     final households = ref.watch(householdControllerProvider);
     final activeHousehold = _activeHousehold(households.valueOrNull ?? const []);
-
     return Scaffold(
       appBar: AppBar(
         title: Text(context.householdTitle),
@@ -148,6 +113,12 @@ class _HouseholdSwitcherScreenState extends ConsumerState<HouseholdSwitcherScree
               icon: const Icon(Icons.edit_outlined),
             ),
           IconButton(
+            key: const ValueKey('household-accept-invite-action'),
+            tooltip: context.joinHousehold,
+            icon: const Icon(Icons.group_add_outlined),
+            onPressed: () => context.push('/households/join'),
+          ),
+          IconButton(
             key: const ValueKey('household-members-action'),
             tooltip: context.householdMembersTitle,
             icon: const Icon(Icons.group_outlined),
@@ -161,9 +132,7 @@ class _HouseholdSwitcherScreenState extends ConsumerState<HouseholdSwitcherScree
           onRetry: () => ref.invalidate(householdControllerProvider),
         ),
         data: (data) {
-          if (data.isEmpty) {
-            return const _HouseholdEmptyState();
-          }
+          if (data.isEmpty) return const _HouseholdEmptyState();
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             children: [
@@ -186,10 +155,7 @@ class _HouseholdSwitcherScreenState extends ConsumerState<HouseholdSwitcherScree
 }
 
 class _HouseholdNameDialog extends StatefulWidget {
-  const _HouseholdNameDialog({
-    required this.title,
-    this.initialValue,
-  });
+  const _HouseholdNameDialog({required this.title, this.initialValue});
 
   final String title;
   final String? initialValue;
@@ -237,9 +203,7 @@ class _HouseholdNameDialogState extends State<_HouseholdNameDialog> {
             prefixIcon: const Icon(Icons.home_work_outlined),
           ),
           validator: (value) {
-            if ((value?.trim().isEmpty ?? true)) {
-              return context.l10n.requiredField;
-            }
+            if (value?.trim().isEmpty ?? true) return context.l10n.requiredField;
             return null;
           },
           onFieldSubmitted: (_) => _submit(),
@@ -250,21 +214,14 @@ class _HouseholdNameDialogState extends State<_HouseholdNameDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: Text(context.l10n.cancel),
         ),
-        FilledButton(
-          onPressed: _submit,
-          child: Text(context.l10n.save),
-        ),
+        FilledButton(onPressed: _submit, child: Text(context.l10n.save)),
       ],
     );
   }
 }
 
 class _HouseholdTile extends StatelessWidget {
-  const _HouseholdTile({
-    required this.household,
-    required this.selecting,
-    required this.onTap,
-  });
+  const _HouseholdTile({required this.household, required this.selecting, required this.onTap});
 
   final HouseholdSummary household;
   final bool selecting;
@@ -274,7 +231,6 @@ class _HouseholdTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final selectedColor = household.isActive ? colorScheme.primaryContainer : colorScheme.surfaceContainerHighest;
-
     return Semantics(
       selected: household.isActive,
       button: !household.isActive,
@@ -290,11 +246,7 @@ class _HouseholdTile extends StatelessWidget {
           trailing: household.isActive
               ? Chip(label: Text(context.householdActive))
               : selecting
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.chevron_right),
           onTap: onTap,
         ),
