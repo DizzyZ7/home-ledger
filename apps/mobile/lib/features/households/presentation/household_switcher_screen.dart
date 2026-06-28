@@ -54,6 +54,12 @@ class _HouseholdSwitcherScreenState extends ConsumerState<HouseholdSwitcherScree
         title: Text(context.householdTitle),
         actions: [
           IconButton(
+            key: const ValueKey('household-accept-invite-action'),
+            tooltip: context.joinHousehold,
+            icon: const Icon(Icons.group_add_outlined),
+            onPressed: () => context.push('/households/join'),
+          ),
+          IconButton(
             key: const ValueKey('household-members-action'),
             tooltip: context.householdMembersTitle,
             icon: const Icon(Icons.group_outlined),
