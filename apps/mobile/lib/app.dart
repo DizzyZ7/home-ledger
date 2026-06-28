@@ -52,6 +52,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   return const _MissingItemRoute();
                 },
               ),
+              GoRoute(
+                path: 'maintenance-history',
+                builder: (context, state) {
+                  final item = state.extra;
+                  return MaintenanceHistoryScreen(
+                    itemId: state.pathParameters['itemId']!,
+                    itemName: item is HomeItem ? item.name : null,
+                  );
+                },
+              ),
             ],
           ),
           GoRoute(
