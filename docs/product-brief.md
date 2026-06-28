@@ -55,6 +55,7 @@ A user creates a task such as “Clean dishwasher filter every 90 days”. The d
 
 - Launch and session restoration.
 - Dashboard with attention summary and item list.
+- Warranty overview for expired and expiring warranties.
 - Item editor.
 - Item details.
 - Maintenance task editor and list.
