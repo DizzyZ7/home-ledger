@@ -25,6 +25,16 @@ List<HomeItem> filterInventoryItems(Iterable<HomeItem> items, String query) {
   );
 }
 
+String inventorySearchEmptyTitle(BuildContext context) {
+  return Localizations.localeOf(context).languageCode == 'ru' ? 'Ничего не найдено' : 'No matching items';
+}
+
+String inventorySearchEmptyBody(BuildContext context, String query) {
+  return Localizations.localeOf(context).languageCode == 'ru'
+      ? 'Попробуйте изменить запрос «$query».'
+      : 'Try changing “$query”.';
+}
+
 String _normalize(String value) => value.trim().toLowerCase();
 
 class InventorySearchField extends ConsumerStatefulWidget {
