@@ -11,6 +11,8 @@ import '../domain/household_summary.dart';
 abstract class HouseholdRepository {
   Future<List<HouseholdSummary>> loadHouseholds();
   Future<HouseholdSummary> selectHousehold(String householdId);
+  Future<HouseholdSummary> createHousehold(String name);
+  Future<HouseholdSummary> renameCurrentHousehold(String name);
   Future<HouseholdDetail> loadCurrentHousehold();
   Future<HouseholdMember> addMember(String email);
   Future<void> removeMember(String userId);
@@ -45,6 +47,40 @@ class RemoteHouseholdRepository implements HouseholdRepository {
   Future<HouseholdSummary> selectHousehold(String householdId) async {
     try {
       final response = await _client.post<Map<String, dynamic>>('/households/$householdId/select');
+      final payload = response.data;
+      if (payload == null) {
+        throw const ApiException('Empty household response.');
+      }
+      return HouseholdSummary.fromJson(payload);
+    } on DioException catch (exception) {
+      throw ApiException.fromDio(exception);
+    }
+  }
+
+  @override
+  Future<HouseholdSummary> createHousehold(String name) async {
+    try {
+      final response = await _client.post<Map<String, dynamic>>(
+        '/households',
+        data: {'name': name},
+      );
+      final payload = response.data;
+      if (payload == null) {
+        throw const ApiException('Empty household response.');
+      }
+      return HouseholdSummary.fromJson(payload);
+    } on DioException catch (exception) {
+      throw ApiException.fromDio(exception);
+    }
+  }
+
+  @override
+  Future<HouseholdSummary> renameCurrentHousehold(String name) async {
+    try {
+      final response = await _client.patch<Map<String, dynamic>>(
+        '/households/current',
+        data: {'name': name},
+      );
       final payload = response.data;
       if (payload == null) {
         throw const ApiException('Empty household response.');
@@ -211,6 +247,7 @@ class MockHouseholdRepository implements HouseholdRepository {
   final Map<String, List<HouseholdMember>> _membersByHousehold;
   final Map<String, List<_MockHouseholdInvite>> _invitesByHousehold = {};
   var _memberSequence = 0;
+  var _householdSequence = 0;
   var _inviteSequence = 0;
 
   @override
@@ -227,6 +264,45 @@ class MockHouseholdRepository implements HouseholdRepository {
         household.copyWith(isActive: household.id == householdId),
     ];
     return _households.firstWhere((household) => household.id == householdId);
+  }
+
+  @override
+  Future<HouseholdSummary> createHousehold(String name) async {
+    final normalizedName = _normalizedName(name);
+    final household = HouseholdSummary(
+      id: 'mock-created-household-${++_householdSequence}',
+      name: normalizedName,
+      ownerId: 'demo-user',
+      role: HouseholdRole.owner,
+      isActive: true,
+    );
+    _households = [
+      for (final existing in _households) existing.copyWith(isActive: false),
+      household,
+    ];
+    _membersByHousehold[household.id] = [
+      const HouseholdMember(
+        userId: 'demo-user',
+        email: 'demo@homeledger.local',
+        displayName: 'Демо-пользователь',
+        role: HouseholdRole.owner,
+      ),
+    ];
+    return household;
+  }
+
+  @override
+  Future<HouseholdSummary> renameCurrentHousehold(String name) async {
+    final active = _activeHousehold();
+    if (active.role != HouseholdRole.owner) {
+      throw const ApiException('Only the household owner can rename this household.');
+    }
+    final renamed = active.copyWith(name: _normalizedName(name));
+    _households = [
+      for (final household in _households)
+        if (household.id == renamed.id) renamed else household,
+    ];
+    return renamed;
   }
 
   @override
@@ -379,6 +455,14 @@ class MockHouseholdRepository implements HouseholdRepository {
 
   HouseholdSummary _activeHousehold() {
     return _households.firstWhere((household) => household.isActive);
+  }
+
+  String _normalizedName(String value) {
+    final normalized = value.trim();
+    if (normalized.isEmpty) {
+      throw const ApiException('Household name must not be blank.');
+    }
+    return normalized;
   }
 
   static String _normalizeCode(String code) {
