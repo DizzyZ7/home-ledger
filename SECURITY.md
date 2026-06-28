@@ -16,11 +16,11 @@ Use GitHub's private security advisory flow for this repository when available. 
 - Potential impact.
 - Suggested mitigation, if known.
 
-Do not include real access tokens, passwords, household records, addresses, or unredacted personal data.
+Do not include real access tokens, passwords, household records, addresses, invitation codes, or unredacted personal data.
 
 ## Scope
 
-Examples include authentication bypasses, authorization flaws, token leakage, unsafe file handling, SQL injection, insecure dependency usage, and exposure of data in logs. Design suggestions and standard bug reports belong in GitHub Issues.
+Examples include authentication bypasses, authorization flaws, token leakage, invitation-code replay or expiry bypasses, unsafe file handling, SQL injection, insecure dependency usage, and exposure of data in logs. Design suggestions and standard bug reports belong in GitHub Issues.
 
 ## Disclosure
 
