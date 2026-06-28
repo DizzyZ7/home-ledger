@@ -70,7 +70,15 @@ def list_tasks(
     if item_id is not None:
         filters.append(MaintenanceTask.item_id == item_id)
 
-    statement = select(MaintenanceTask).join(MaintenanceTask.item).options(selectinload(MaintenanceTask.item)).where(*filters).order_by(MaintenanceTask.next_due_date.asc()).offset((page - 1) * page_size).limit(page_size)
+    statement = (
+        select(MaintenanceTask)
+        .join(MaintenanceTask.item)
+        .options(selectinload(MaintenanceTask.item))
+        .where(*filters)
+        .order_by(MaintenanceTask.next_due_date.asc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
     total_statement = select(func.count()).select_from(MaintenanceTask).join(MaintenanceTask.item).where(*filters)
     tasks = list(session.scalars(statement))
     total = session.scalar(total_statement) or 0
