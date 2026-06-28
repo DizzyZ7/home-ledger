@@ -204,6 +204,9 @@ class MockHouseholdRepository implements HouseholdRepository {
           ],
         };
 
+  static const demoIncomingInviteCode = 'HL-DEMA-2345-6789-ABCD-EFGH';
+  static const _demoIncomingHouseholdId = 'mock-invited-household';
+
   List<HouseholdSummary> _households;
   final Map<String, List<HouseholdMember>> _membersByHousehold;
   final Map<String, List<_MockHouseholdInvite>> _invitesByHousehold = {};
@@ -332,13 +335,42 @@ class MockHouseholdRepository implements HouseholdRepository {
 
   @override
   Future<HouseholdSummary> acceptInvite(String code) async {
+    if (_normalizeCode(code) == _normalizeCode(demoIncomingInviteCode)) {
+      if (_households.any((household) => household.id == _demoIncomingHouseholdId)) {
+        throw const ApiException('You are already a household member.');
+      }
+      const joinedHousehold = HouseholdSummary(
+        id: _demoIncomingHouseholdId,
+        name: 'Дом друзей',
+        ownerId: 'mock-friends-owner',
+        role: HouseholdRole.member,
+        isActive: true,
+      );
+      _households = [
+        for (final household in _households) household.copyWith(isActive: false),
+        joinedHousehold,
+      ];
+      _membersByHousehold[_demoIncomingHouseholdId] = const [
+        HouseholdMember(
+          userId: 'mock-friends-owner',
+          email: 'friends@example.com',
+          displayName: 'Друзья',
+          role: HouseholdRole.owner,
+        ),
+        HouseholdMember(
+          userId: 'demo-user',
+          email: 'demo@homeledger.local',
+          displayName: 'Демо-пользователь',
+          role: HouseholdRole.member,
+        ),
+      ];
+      return joinedHousehold;
+    }
+
     for (final entry in _invitesByHousehold.entries) {
       for (final invite in entry.value) {
-        if (invite.code.replaceAll('-', '').toUpperCase() == code.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase()) {
-          final existing = _households.where((household) => household.id == entry.key).toList(growable: false);
-          if (existing.isNotEmpty) {
-            throw const ApiException('You are already a household member.');
-          }
+        if (_normalizeCode(invite.code) == _normalizeCode(code)) {
+          throw const ApiException('You are already a household member.');
         }
       }
     }
@@ -347,6 +379,10 @@ class MockHouseholdRepository implements HouseholdRepository {
 
   HouseholdSummary _activeHousehold() {
     return _households.firstWhere((household) => household.isActive);
+  }
+
+  static String _normalizeCode(String code) {
+    return code.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toUpperCase();
   }
 }
 
