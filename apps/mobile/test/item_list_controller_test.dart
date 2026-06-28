@@ -4,7 +4,7 @@ import 'package:home_ledger/features/dashboard/presentation/item_list_controller
 import 'package:home_ledger/features/items/data/home_item_repository.dart';
 import 'package:home_ledger/features/items/domain/home_item.dart';
 
-class FakeHomeItemRepository implements HomeItemRepository {
+class FakeHomeItemRepository extends HomeItemRepository {
   FakeHomeItemRepository(this._items, {List<HomeItem>? archivedItems})
       : _archivedItems = archivedItems ?? [];
 
