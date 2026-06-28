@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../../app.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../core/settings/app_settings_controller.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../households/presentation/household_controller.dart';
 import '../../households/presentation/household_localizations.dart';
@@ -22,7 +22,6 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final items = ref.watch(itemListControllerProvider);
-    final locale = ref.watch(localeProvider);
     final l10n = context.l10n;
     final households = ref.watch(householdControllerProvider);
     final searchQuery = ref.watch(inventorySearchQueryProvider);
@@ -40,6 +39,12 @@ class HomeScreen extends ConsumerWidget {
             onPressed: () => context.push('/households'),
           ),
           IconButton(
+            key: const ValueKey('settings-action'),
+            tooltip: context.l10n.languageCode == 'ru' ? 'Настройки' : 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push('/settings'),
+          ),
+          IconButton(
             tooltip: l10n.archive,
             icon: const Icon(Icons.archive_outlined),
             onPressed: () => context.push('/items/archived'),
@@ -47,10 +52,7 @@ class HomeScreen extends ConsumerWidget {
           IconButton(
             tooltip: l10n.language,
             icon: const Icon(Icons.language_outlined),
-            onPressed: () {
-              ref.read(localeProvider.notifier).state =
-                  locale.languageCode == 'ru' ? const Locale('en') : const Locale('ru');
-            },
+            onPressed: () => ref.read(appSettingsControllerProvider.notifier).toggleLanguage(),
           ),
           IconButton(
             tooltip: l10n.signOut,
