@@ -28,3 +28,8 @@ class HomeItem(TimestampMixin, Base):
         back_populates="item",
         cascade="all, delete-orphan",
     )
+    documents = relationship(
+        "ItemDocument",
+        back_populates="item",
+        cascade="all, delete-orphan",
+    )
