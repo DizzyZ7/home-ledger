@@ -2,7 +2,7 @@
 
 > **Know what you own. Never miss maintenance.**
 
-HomeLedger is a self-hosted mobile application and REST API for cataloging household items, tracking warranties and receipts, and planning recurring maintenance. It is designed for people who want practical control over appliances and home equipment without sending their inventory to a proprietary cloud by default.
+HomeLedger is a self-hosted mobile application and REST API for cataloging household items, tracking warranties and receipts, planning recurring maintenance, and sharing a household safely with invite codes. It is designed for people who want practical control over appliances and home equipment without sending their inventory to a proprietary cloud by default.
 
 The repository is intentionally production-oriented: Flutter client, FastAPI backend, PostgreSQL, JWT sessions, migrations, tests, Docker Compose, CI, RU/EN localization, a safe mock mode, and no paid API dependency for the baseline demo.
 
@@ -16,6 +16,8 @@ Household information usually fragments across paper receipts, chat messages, ph
 - Keep warranty expiry, purchase date, serial number, location, and notes.
 - Track recurring maintenance tasks through the REST API.
 - See expiring-warranty attention indicators in the mobile dashboard.
+- Create, revoke, and accept one-time household invite codes without an external email provider.
+- Store only HMAC-protected invite-code digests; plaintext is displayed to the owner once after generation.
 - Work in a mock-first mobile mode without starting backend services.
 - Use a self-hosted FastAPI + PostgreSQL backend with registration and sign-in.
 - Use Russian and English UI strings with system light/dark theme support.
@@ -24,9 +26,9 @@ Household information usually fragments across paper receipts, chat messages, ph
 
 > Add real, redacted screenshots under `docs/images/` and replace these placeholders before the first public release.
 
-| Dashboard | Item editor | Maintenance |
-| --- | --- | --- |
-| `docs/images/dashboard.png` | `docs/images/item-editor.png` | `docs/images/maintenance.png` |
+| Dashboard | Item editor | Household invites | Maintenance |
+| --- | --- | --- | --- |
+| `docs/images/dashboard.png` | `docs/images/item-editor.png` | `docs/images/household-invites.png` | `docs/images/maintenance.png` |
 
 ## Tech stack
 
@@ -112,6 +114,8 @@ Use `.env.example` as the only template. Do not commit `.env`, access tokens, pa
 | --- | --- |
 | `DATABASE_URL` | SQLAlchemy connection string used by the API |
 | `JWT_SECRET_KEY` | Secret used to sign access and refresh tokens |
+| `HOUSEHOLD_INVITE_SECRET_KEY` | Optional dedicated HMAC secret for invite-code digests |
+| `HOUSEHOLD_INVITE_DEFAULT_EXPIRES_HOURS` | Default invite-code lifetime; default: 72 hours |
 | `CORS_ORIGINS` | Comma-separated web origins allowed by API CORS |
 | `RATE_LIMIT_REQUESTS` | Requests allowed per window for a client IP |
 | `RATE_LIMIT_WINDOW_SECONDS` | Rate limiting window duration |
@@ -123,7 +127,7 @@ Use `.env.example` as the only template. Do not commit `.env`, access tokens, pa
 - [x] Flutter dashboard, mock mode, local cache and sign-in foundation
 - [ ] Item details, item edit and archive UX in mobile client
 - [ ] Receipt photo attachments through a pluggable local storage adapter
-- [ ] Household invitations and per-household roles
+- [x] Household invitation codes and per-household roles
 - [ ] Widgets and maintenance reminders
 - [ ] Optional encrypted backup export/import
 
