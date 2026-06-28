@@ -79,5 +79,6 @@ def test_export_returns_only_active_household_items_and_neutralizes_formulas(cli
     exported_with_archived = client.get("/api/v1/items/export?include_archived=true", headers=owner_headers)
     assert exported_with_archived.status_code == 200
     archived_rows = _csv_rows(exported_with_archived)
-    assert [row[0] for row in archived_rows[1:]] == ["Archived router", "'=SUM(1,1)"]
-    assert archived_rows[1][-1] == "yes"
+    assert [row[0] for row in archived_rows[1:]] == ["'=SUM(1,1)", "Archived router"]
+    assert archived_rows[1][-1] == "no"
+    assert archived_rows[2][-1] == "yes"
