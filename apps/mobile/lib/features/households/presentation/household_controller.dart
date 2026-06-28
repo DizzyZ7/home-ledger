@@ -2,11 +2,10 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/data/household_scoped_repositories.dart';
 import '../../dashboard/presentation/item_list_controller.dart';
-import '../../items/data/home_item_repository.dart';
 import '../../items/presentation/archived_item_list_controller.dart';
 import '../../items/presentation/warranty_overview_provider.dart';
-import '../../maintenance/data/maintenance_repository.dart';
 import '../../maintenance/presentation/maintenance_history_controller.dart';
 import '../../maintenance/presentation/maintenance_list_controller.dart';
 import '../data/household_repository.dart';
@@ -20,7 +19,9 @@ class HouseholdController extends AsyncNotifier<List<HouseholdSummary>> {
   @override
   FutureOr<List<HouseholdSummary>> build() async {
     final households = await ref.read(householdRepositoryProvider).loadHouseholds();
-    _applyActiveHousehold(households);
+    if (_applyActiveHousehold(households)) {
+      _invalidateHouseholdData();
+    }
     return households;
   }
 
@@ -32,22 +33,28 @@ class HouseholdController extends AsyncNotifier<List<HouseholdSummary>> {
         household.copyWith(isActive: household.id == selected.id),
     ];
     state = AsyncData(updated);
-    _applyActiveHousehold(updated);
-    _invalidateHouseholdData();
-  }
-
-  void _applyActiveHousehold(List<HouseholdSummary> households) {
-    for (final household in households) {
-      if (household.isActive) {
-        ref.read(activeHouseholdIdProvider.notifier).state = household.id;
-        return;
-      }
+    if (_applyActiveHousehold(updated)) {
+      _invalidateHouseholdData();
     }
   }
 
+  bool _applyActiveHousehold(List<HouseholdSummary> households) {
+    for (final household in households) {
+      if (household.isActive) {
+        final current = ref.read(activeHouseholdIdProvider);
+        if (current == household.id) {
+          return false;
+        }
+        ref.read(activeHouseholdIdProvider.notifier).state = household.id;
+        return true;
+      }
+    }
+    return false;
+  }
+
   void _invalidateHouseholdData() {
-    ref.invalidate(homeItemRepositoryProvider);
-    ref.invalidate(maintenanceRepositoryProvider);
+    ref.invalidate(householdScopedHomeItemRepositoryProvider);
+    ref.invalidate(householdScopedMaintenanceRepositoryProvider);
     ref.invalidate(itemListControllerProvider);
     ref.invalidate(archivedItemListControllerProvider);
     ref.invalidate(warrantyOverviewProvider);
