@@ -56,8 +56,18 @@ class RemoteMaintenanceRepository implements MaintenanceRepository {
           if (itemId != null) 'item_id': itemId,
         },
       );
-      return _sortHistory(_historyFromPayload(response.data));
+      final history = _sortHistory(_historyFromPayload(response.data));
+      if (itemId == null) {
+        await _cache.writeHistory(history);
+      }
+      return history;
     } on DioException catch (exception) {
+      final cached = await _cache.readHistory();
+      if (cached != null) {
+        return _sortHistory(
+          itemId == null ? cached : cached.where((entry) => entry.itemId == itemId),
+        );
+      }
       throw ApiException.fromDio(exception);
     }
   }
@@ -110,6 +120,7 @@ class RemoteMaintenanceRepository implements MaintenanceRepository {
       }
       final completed = MaintenanceTask.fromJson(payload);
       await _mergeCachedTask(completed, addWhenMissing: false);
+      await _cache.clearHistory();
       return completed;
     } on DioException catch (exception) {
       throw ApiException.fromDio(exception);

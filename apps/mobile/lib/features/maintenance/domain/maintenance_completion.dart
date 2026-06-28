@@ -40,4 +40,14 @@ class MaintenanceCompletion {
       completedAt: parsedCompletedAt,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'household_id': householdId,
+        'item_id': itemId,
+        'item_name': itemName,
+        'task_id': taskId,
+        'task_title': taskTitle,
+        'completed_at': completedAt.toIso8601String(),
+      };
 }
