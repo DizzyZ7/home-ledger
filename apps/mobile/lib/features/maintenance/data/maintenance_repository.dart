@@ -5,6 +5,7 @@ import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
 import '../domain/maintenance_task.dart';
+import 'maintenance_task_cache.dart';
 import 'maintenance_task_payload.dart';
 
 abstract class MaintenanceRepository {
@@ -15,9 +16,10 @@ abstract class MaintenanceRepository {
 }
 
 class RemoteMaintenanceRepository implements MaintenanceRepository {
-  RemoteMaintenanceRepository(this._client);
+  RemoteMaintenanceRepository(this._client, this._cache);
 
   final Dio _client;
+  final MaintenanceTaskCache _cache;
 
   @override
   Future<List<MaintenanceTask>> loadTasks({String? itemId}) async {
@@ -26,13 +28,18 @@ class RemoteMaintenanceRepository implements MaintenanceRepository {
         '/maintenance',
         queryParameters: itemId == null ? null : {'item_id': itemId},
       );
-      final payload = response.data;
-      final rawTasks = payload?['items'] as List<dynamic>? ?? const [];
-      return rawTasks
-          .whereType<Map<String, dynamic>>()
-          .map(MaintenanceTask.fromJson)
-          .toList(growable: false);
+      final tasks = _sortTasks(_tasksFromPayload(response.data));
+      if (itemId == null) {
+        await _cache.write(tasks);
+      }
+      return tasks;
     } on DioException catch (exception) {
+      final cached = await _cache.read();
+      if (cached != null) {
+        return _sortTasks(
+          itemId == null ? cached : cached.where((task) => task.itemId == itemId),
+        );
+      }
       throw ApiException.fromDio(exception);
     }
   }
@@ -48,7 +55,9 @@ class RemoteMaintenanceRepository implements MaintenanceRepository {
       if (payload == null) {
         throw const ApiException('Empty maintenance response.');
       }
-      return MaintenanceTask.fromJson(payload);
+      final created = MaintenanceTask.fromJson(payload);
+      await _mergeCachedTask(created, addWhenMissing: true);
+      return created;
     } on DioException catch (exception) {
       throw ApiException.fromDio(exception);
     }
@@ -65,7 +74,9 @@ class RemoteMaintenanceRepository implements MaintenanceRepository {
       if (payload == null) {
         throw const ApiException('Empty maintenance response.');
       }
-      return MaintenanceTask.fromJson(payload);
+      final updated = MaintenanceTask.fromJson(payload);
+      await _mergeCachedTask(updated, addWhenMissing: false);
+      return updated;
     } on DioException catch (exception) {
       throw ApiException.fromDio(exception);
     }
@@ -79,10 +90,49 @@ class RemoteMaintenanceRepository implements MaintenanceRepository {
       if (payload == null) {
         throw const ApiException('Empty maintenance response.');
       }
-      return MaintenanceTask.fromJson(payload);
+      final completed = MaintenanceTask.fromJson(payload);
+      await _mergeCachedTask(completed, addWhenMissing: false);
+      return completed;
     } on DioException catch (exception) {
       throw ApiException.fromDio(exception);
     }
+  }
+
+  Future<void> _mergeCachedTask(
+    MaintenanceTask task, {
+    required bool addWhenMissing,
+  }) async {
+    final cached = await _cache.read();
+    if (cached == null) {
+      return;
+    }
+
+    final index = cached.indexWhere((existing) => existing.id == task.id);
+    if (index == -1 && !addWhenMissing) {
+      return;
+    }
+
+    final updated = [...cached];
+    if (index == -1) {
+      updated.add(task);
+    } else {
+      updated[index] = task;
+    }
+    await _cache.write(_sortTasks(updated));
+  }
+
+  List<MaintenanceTask> _tasksFromPayload(Map<String, dynamic>? payload) {
+    final rawTasks = payload?['items'] as List<dynamic>? ?? const [];
+    return rawTasks
+        .whereType<Map<String, dynamic>>()
+        .map(MaintenanceTask.fromJson)
+        .toList(growable: false);
+  }
+
+  List<MaintenanceTask> _sortTasks(Iterable<MaintenanceTask> tasks) {
+    final sorted = tasks.toList(growable: false)
+      ..sort((left, right) => left.nextDueDate.compareTo(right.nextDueDate));
+    return List.unmodifiable(sorted);
   }
 }
 
@@ -149,5 +199,5 @@ final maintenanceRepositoryProvider = Provider<MaintenanceRepository>((ref) {
   if (config.useMockData) {
     return MockMaintenanceRepository();
   }
-  return RemoteMaintenanceRepository(ref.watch(apiClientProvider));
+  return RemoteMaintenanceRepository(ref.watch(apiClientProvider), MaintenanceTaskCache());
 });
