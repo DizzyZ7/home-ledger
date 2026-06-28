@@ -30,16 +30,19 @@ class _DashboardShellState extends State<DashboardShell> {
         onDestinationSelected: (value) => setState(() => _selectedIndex = value),
         destinations: [
           NavigationDestination(
+            key: const ValueKey('navigation-inventory'),
             icon: const Icon(Icons.inventory_2_outlined),
             selectedIcon: const Icon(Icons.inventory_2),
             label: l10n.inventory,
           ),
           NavigationDestination(
+            key: const ValueKey('navigation-warranties'),
             icon: const Icon(Icons.verified_user_outlined),
             selectedIcon: const Icon(Icons.verified_user),
             label: l10n.warranties,
           ),
           NavigationDestination(
+            key: const ValueKey('navigation-maintenance'),
             icon: const Icon(Icons.build_outlined),
             selectedIcon: const Icon(Icons.build),
             label: l10n.maintenance,
