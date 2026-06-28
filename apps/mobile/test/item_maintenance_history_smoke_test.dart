@@ -24,7 +24,7 @@ void main() {
     await tester.tap(routerCompletion);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.inventory_2_outlined));
+    await tester.tap(find.byKey(const ValueKey('navigation-inventory')));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Washing machine').first);
