@@ -15,6 +15,8 @@ from app.schemas.attachments import ItemAttachmentResponse
 from app.schemas.common import Page
 from app.schemas.items import ItemCreate, ItemResponse, ItemUpdate
 from app.storage.attachments import (
+    AttachmentContentMismatchError,
+    AttachmentEmptyError,
     AttachmentStorageError,
     AttachmentTooLargeError,
     LocalAttachmentStorage,
@@ -41,7 +43,11 @@ def _owned_item(session: DbSession, user_id: str, item_id: str) -> HomeItem:
 
 def _owned_attachment(item: HomeItem, attachment_id: str, session: DbSession) -> ItemAttachment:
     attachment = session.get(ItemAttachment, attachment_id)
-    if attachment is None or attachment.item_id != item.id or attachment.household_id != item.household_id:
+    if (
+        attachment is None
+        or attachment.item_id != item.id
+        or attachment.household_id != item.household_id
+    ):
         raise HTTPException(
             status_code=404,
             detail={"code": "attachment_not_found", "message": "Attachment was not found."},
@@ -53,9 +59,10 @@ def _attachment_storage() -> LocalAttachmentStorage:
     return LocalAttachmentStorage(get_settings().attachment_storage_path)
 
 
-def _safe_filename(file: UploadFile) -> str:
-    filename = Path((file.filename or "").replace("\\", "/")).name.strip()
-    if not filename or filename in {".", ".."} or any(character.isspace() for character in filename[:1]):
+def _safe_filename(raw_filename: str | None) -> str:
+    path_name = Path((raw_filename or "").replace("\\", "/")).name
+    filename = "".join(character for character in path_name if character.isprintable()).strip()
+    if not filename or filename in {".", ".."}:
         raise HTTPException(
             status_code=422,
             detail={"code": "attachment_filename_invalid", "message": "A valid filename is required."},
@@ -182,7 +189,12 @@ async def create_item_attachment(
             },
         )
 
-    filename = _safe_filename(file)
+    try:
+        filename = _safe_filename(file.filename)
+    except HTTPException:
+        await file.close()
+        raise
+
     attachment_count = session.scalar(
         select(func.count()).select_from(ItemAttachment).where(ItemAttachment.item_id == item.id)
     )
@@ -198,7 +210,24 @@ async def create_item_attachment(
 
     storage = _attachment_storage()
     try:
-        stored = await storage.save(file, max_bytes=settings.attachment_max_bytes)
+        stored = await storage.save(
+            file,
+            content_type=content_type,
+            max_bytes=settings.attachment_max_bytes,
+        )
+    except AttachmentEmptyError:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "attachment_empty", "message": "The attachment must not be empty."},
+        ) from None
+    except AttachmentContentMismatchError:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail={
+                "code": "attachment_signature_mismatch",
+                "message": "The attachment bytes do not match the declared content type.",
+            },
+        ) from None
     except AttachmentTooLargeError:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
