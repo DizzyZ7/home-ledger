@@ -43,12 +43,9 @@ class WarrantyStatusBadge extends StatelessWidget {
           children: [
             Icon(icon, size: 16, color: accent),
             const SizedBox(width: 4),
-            Flexible(
-              child: Text(
-                label,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(color: accent),
-              ),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(color: accent),
             ),
           ],
         ),
