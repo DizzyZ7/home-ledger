@@ -114,16 +114,14 @@ class _HouseholdMembersScreenState extends ConsumerState<HouseholdMembersScreen>
                 ),
               ),
               const SizedBox(height: 16),
-              if (isOwner) ...[
+              if (isOwner)
                 _AddMemberForm(
                   formKey: _formKey,
                   emailController: _emailController,
                   adding: _adding,
                   onAdd: _addMember,
-                ),
-                const SizedBox(height: 12),
-                const HouseholdInvitesSection(),
-              ] else
+                )
+              else
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -147,6 +145,10 @@ class _HouseholdMembersScreenState extends ConsumerState<HouseholdMembersScreen>
                   onRemove: () => _removeMember(member),
                 ),
                 const SizedBox(height: 8),
+              ],
+              if (isOwner) ...[
+                const SizedBox(height: 12),
+                const HouseholdInvitesSection(),
               ],
             ],
           );
