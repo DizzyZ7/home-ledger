@@ -35,11 +35,17 @@ class AuthRepository {
       if (data == null) {
         throw const ApiException('Empty authentication response.');
       }
+      final user = UserSession.fromJson(data['user'] as Map<String, dynamic>);
       await _tokenStorage.save(
         accessToken: data['access_token'] as String,
         refreshToken: data['refresh_token'] as String,
+        session: StoredSession(
+          userId: user.userId,
+          email: user.email,
+          displayName: user.displayName,
+        ),
       );
-      return UserSession.fromJson(data['user'] as Map<String, dynamic>);
+      return user;
     } on DioException catch (exception) {
       throw ApiException.fromDio(exception);
     }
