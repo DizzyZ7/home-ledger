@@ -6,31 +6,38 @@ import '../domain/maintenance_completion.dart';
 import '../domain/maintenance_task.dart';
 
 class MaintenanceTaskCache {
-  MaintenanceTaskCache({String boxName = _defaultBoxName}) : _boxName = boxName;
+  MaintenanceTaskCache({
+    String boxName = _defaultBoxName,
+    String? householdId,
+  })  : _boxName = boxName,
+        _householdId = householdId;
 
   static const _defaultBoxName = 'homeledger_maintenance_v1';
   static const _tasksKey = 'tasks';
   static const _historyKey = 'history';
 
   final String _boxName;
+  final String? _householdId;
 
   Future<List<MaintenanceTask>?> read() {
-    return _readList(_tasksKey, MaintenanceTask.fromJson);
+    return _readList(_scopedKey(_tasksKey), MaintenanceTask.fromJson);
   }
 
   Future<List<MaintenanceCompletion>?> readHistory() {
-    return _readList(_historyKey, MaintenanceCompletion.fromJson);
+    return _readList(_scopedKey(_historyKey), MaintenanceCompletion.fromJson);
   }
 
   Future<void> write(Iterable<MaintenanceTask> tasks) {
-    return _writeList(_tasksKey, tasks.map((task) => task.toJson()));
+    return _writeList(_scopedKey(_tasksKey), tasks.map((task) => task.toJson()));
   }
 
   Future<void> writeHistory(Iterable<MaintenanceCompletion> history) {
-    return _writeList(_historyKey, history.map((entry) => entry.toJson()));
+    return _writeList(_scopedKey(_historyKey), history.map((entry) => entry.toJson()));
   }
 
-  Future<void> clearHistory() => _delete(_historyKey);
+  Future<void> clearHistory() => _delete(_scopedKey(_historyKey));
+
+  String _scopedKey(String key) => _householdId == null ? key : '$key:$_householdId';
 
   Future<List<T>?> _readList<T>(
     String key,
