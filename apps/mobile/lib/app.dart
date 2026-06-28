@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'core/config/app_config.dart';
 import 'core/localization/app_localizations.dart';
+import 'core/settings/app_settings_controller.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/auth_screen.dart';
 import 'features/auth/presentation/session_controller.dart';
@@ -20,8 +21,7 @@ import 'features/maintenance/domain/maintenance_task.dart';
 import 'features/maintenance/presentation/maintenance_form_screen.dart';
 import 'features/maintenance/presentation/maintenance_history_screen.dart';
 import 'features/maintenance/presentation/maintenance_screen.dart';
-
-final localeProvider = StateProvider<Locale>((ref) => const Locale('ru'));
+import 'features/settings/presentation/settings_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -30,6 +30,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/',
         builder: (context, state) => const SessionGate(),
         routes: [
+          GoRoute(
+            path: 'settings',
+            builder: (context, state) => const SettingsScreen(),
+          ),
           GoRoute(
             path: 'households',
             builder: (context, state) => const HouseholdSwitcherScreen(),
@@ -114,7 +118,7 @@ class HomeLedgerApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final locale = ref.watch(localeProvider);
+    final settings = ref.watch(appSettingsControllerProvider);
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
@@ -122,8 +126,8 @@ class HomeLedgerApp extends ConsumerWidget {
       title: 'HomeLedger',
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
-      locale: locale,
+      themeMode: settings.themeMode,
+      locale: settings.locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: const [
         AppLocalizations.delegate,
