@@ -9,6 +9,7 @@ import '../../auth/presentation/session_controller.dart';
 import '../../items/domain/home_item.dart';
 import '../../items/presentation/item_localizations.dart';
 import 'dashboard_attention_summary.dart';
+import 'inventory_search.dart';
 import 'item_list_controller.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -19,6 +20,7 @@ class HomeScreen extends ConsumerWidget {
     final items = ref.watch(itemListControllerProvider);
     final locale = ref.watch(localeProvider);
     final l10n = context.l10n;
+    final searchQuery = ref.watch(inventorySearchQueryProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -57,6 +59,8 @@ class HomeScreen extends ConsumerWidget {
           if (data.isEmpty) {
             return _EmptyState(onAdd: () => context.push('/items/new'));
           }
+
+          final matchingItems = filterInventoryItems(data, searchQuery);
           return RefreshIndicator(
             onRefresh: () => ref.read(itemListControllerProvider.notifier).refresh(),
             child: ListView(
@@ -64,9 +68,14 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 DashboardAttentionSummary(items: data),
                 const SizedBox(height: 16),
+                const InventorySearchField(),
+                const SizedBox(height: 16),
                 Text(l10n.allItems, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
-                ...data.map((item) => _ItemTile(item: item)),
+                if (matchingItems.isEmpty)
+                  _SearchEmptyState(query: searchQuery)
+                else
+                  ...matchingItems.map((item) => _ItemTile(item: item)),
               ],
             ),
           );
@@ -100,6 +109,36 @@ class _ItemTile extends StatelessWidget {
           subtitle: Text([if (item.location != null) item.location!, warrantyText].join(' · ')),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => context.push('/items/${item.id}'),
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchEmptyState extends StatelessWidget {
+  const _SearchEmptyState({required this.query});
+
+  final String query;
+
+  @override
+  Widget build(BuildContext context) {
+    final isRussian = Localizations.localeOf(context).languageCode == 'ru';
+    final title = isRussian ? 'Ничего не найµено : 'No matching items';
+    final body = isRussian
+        ? 'Попробуйте изменить запрос §$query§¸.'
+        : 'Try changing “$query”.';
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const Icon(Icons.search_off_outlined, size: 36),
+            const SizedBox(height: 12),
+            Text(title, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(body, textAlign: TextAlign.center),
+          ],
         ),
       ),
     );
