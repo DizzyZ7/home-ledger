@@ -14,7 +14,11 @@ from app.models.item import HomeItem
 from app.schemas.attachments import ItemAttachmentResponse
 from app.schemas.common import Page
 from app.schemas.items import ItemCreate, ItemResponse, ItemUpdate
-from app.storage.attachments import AttachmentStorageError, AttachmentTooLargeError, LocalAttachmentStorage
+from app.storage.attachments import (
+    AttachmentStorageError,
+    AttachmentTooLargeError,
+    LocalAttachmentStorage,
+)
 
 router = APIRouter(prefix="/items", tags=["items"])
 WarrantyState = Literal["expired", "expiring", "valid", "none"]
@@ -28,7 +32,10 @@ def _owned_item(session: DbSession, user_id: str, item_id: str) -> HomeItem:
     household = _default_household(session, user_id)
     item = session.get(HomeItem, item_id)
     if item is None or item.household_id != household.id:
-        raise HTTPException(status_code=404, detail={"code": "item_not_found", "message": "Item was not found."})
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "item_not_found", "message": "Item was not found."},
+        )
     return item
 
 
@@ -47,8 +54,8 @@ def _attachment_storage() -> LocalAttachmentStorage:
 
 
 def _safe_filename(file: UploadFile) -> str:
-    filename = Path(file.filename or "").name.strip()
-    if not filename or filename in {".", ".."}:
+    filename = Path((file.filename or "").replace("\\", "/")).name.strip()
+    if not filename or filename in {".", ".."} or any(character.isspace() for character in filename[:1]):
         raise HTTPException(
             status_code=422,
             detail={"code": "attachment_filename_invalid", "message": "A valid filename is required."},
@@ -91,8 +98,18 @@ def list_items(
         else:
             filters.append(HomeItem.warranty_expires_at.is_(None))
 
-    order_by = HomeItem.warranty_expires_at.asc() if warranty_state is not None and warranty_state != "none" else HomeItem.created_at.desc()
-    statement = select(HomeItem).where(*filters).order_by(order_by).offset((page - 1) * page_size).limit(page_size)
+    order_by = (
+        HomeItem.warranty_expires_at.asc()
+        if warranty_state is not None and warranty_state != "none"
+        else HomeItem.created_at.desc()
+    )
+    statement = (
+        select(HomeItem)
+        .where(*filters)
+        .order_by(order_by)
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
     count_statement = select(func.count()).select_from(HomeItem).where(*filters)
     return Page[ItemResponse](
         items=list(session.scalars(statement)),
@@ -121,7 +138,10 @@ def list_item_attachments(
     page_size: int = Query(default=30, ge=1, le=100),
 ) -> Page[ItemAttachmentResponse]:
     item = _owned_item(session, user.id, item_id)
-    filters = [ItemAttachment.item_id == item.id, ItemAttachment.household_id == item.household_id]
+    filters = [
+        ItemAttachment.item_id == item.id,
+        ItemAttachment.household_id == item.household_id,
+    ]
     statement = (
         select(ItemAttachment)
         .where(*filters)
@@ -182,12 +202,18 @@ async def create_item_attachment(
     except AttachmentTooLargeError:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail={"code": "attachment_too_large", "message": "The attachment exceeds the configured size limit."},
+            detail={
+                "code": "attachment_too_large",
+                "message": "The attachment exceeds the configured size limit.",
+            },
         ) from None
     except OSError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={"code": "attachment_storage_unavailable", "message": "Attachment storage is unavailable."},
+            detail={
+                "code": "attachment_storage_unavailable",
+                "message": "Attachment storage is unavailable.",
+            },
         ) from None
 
     attachment = ItemAttachment(
@@ -204,7 +230,10 @@ async def create_item_attachment(
         session.commit()
     except Exception:
         session.rollback()
-        storage.delete(stored.storage_key)
+        try:
+            storage.delete(stored.storage_key)
+        except (AttachmentStorageError, OSError):
+            pass
         raise
     session.refresh(attachment)
     return attachment
