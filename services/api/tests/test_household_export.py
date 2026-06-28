@@ -56,10 +56,13 @@ def test_export_contains_only_the_active_household_snapshot(client):
         },
     )
     assert task.status_code == 201
-    assert client.post(
-        f"/api/v1/maintenance/{task.json()['id']}/complete",
-        headers=owner_headers,
-    ).status_code == 200
+    assert (
+        client.post(
+            f"/api/v1/maintenance/{task.json()['id']}/complete",
+            headers=owner_headers,
+        ).status_code
+        == 200
+    )
 
     personal_item = client.post(
         "/api/v1/items",
@@ -83,10 +86,13 @@ def test_export_contains_only_the_active_household_snapshot(client):
         json={"email": "member-export@example.com"},
     )
     assert shared_member.status_code == 201
-    assert client.post(
-        f"/api/v1/households/{household_id}/select",
-        headers=member_headers,
-    ).status_code == 200
+    assert (
+        client.post(
+            f"/api/v1/households/{household_id}/select",
+            headers=member_headers,
+        ).status_code
+        == 200
+    )
 
     exported = client.get("/api/v1/households/current/export", headers=member_headers)
     assert exported.status_code == 200
@@ -98,8 +104,6 @@ def test_export_contains_only_the_active_household_snapshot(client):
     assert {item["name"] for item in payload["items"]} == {"Shared router", "Archived kettle"}
     assert next(item for item in payload["items"] if item["id"] == archived_id)["archived_at"] is not None
     assert [entry["title"] for entry in payload["maintenance_tasks"]] == ["Review router firmware"]
-    assert [entry["task_title"] for entry in payload["maintenance_completions"]] == [
-        "Review router firmware"
-    ]
+    assert [entry["task_title"] for entry in payload["maintenance_completions"]] == ["Review router firmware"]
     assert "Member-only vacuum" not in json.dumps(payload)
     assert "password_hash" not in json.dumps(payload)
