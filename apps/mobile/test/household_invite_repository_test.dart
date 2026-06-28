@@ -86,4 +86,17 @@ void main() {
     expect(joined.isActive, isTrue);
     expect(joined.id, 'shared-household');
   });
+
+  test('mock repository accepts the documented demo invite and switches household', () async {
+    final repository = MockHouseholdRepository();
+
+    final joined = await repository.acceptInvite(
+      MockHouseholdRepository.demoIncomingInviteCode.toLowerCase().replaceAll('-', ' '),
+    );
+    final households = await repository.loadHouseholds();
+
+    expect(joined.id, 'mock-invited-household');
+    expect(joined.isActive, isTrue);
+    expect(households.where((household) => household.isActive).single.id, joined.id);
+  });
 }
