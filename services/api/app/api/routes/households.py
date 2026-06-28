@@ -1,19 +1,28 @@
+from datetime import UTC, datetime, timedelta
+
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.api.dependencies import CurrentUser, DbSession
 from app.api.household_access import active_household_membership, require_active_household_owner
+from app.core.config import get_settings
 from app.models.household import Household, HouseholdMember
+from app.models.household_invite import HouseholdInvite
 from app.models.user import User
 from app.schemas.households import (
     HouseholdCreate,
     HouseholdDetailResponse,
+    HouseholdInviteAccept,
+    HouseholdInviteCreate,
+    HouseholdInviteCreateResponse,
+    HouseholdInviteResponse,
     HouseholdMemberCreate,
     HouseholdMemberResponse,
     HouseholdSummaryResponse,
     HouseholdUpdate,
 )
+from app.services.household_invites import create_household_invite_code, household_invite_code_hash
 
 router = APIRouter(prefix="/households", tags=["households"])
 
@@ -41,11 +50,28 @@ def _member_response(membership: HouseholdMember) -> HouseholdMemberResponse:
     )
 
 
+def _invite_response(invite: HouseholdInvite) -> HouseholdInviteResponse:
+    return HouseholdInviteResponse(
+        id=invite.id,
+        expires_at=invite.expires_at,
+        created_at=invite.created_at,
+    )
+
+
+def _invite_is_expired(expires_at: datetime, now: datetime) -> bool:
+    normalized_expiry = expires_at if expires_at.tzinfo is not None else expires_at.replace(tzinfo=UTC)
+    return normalized_expiry <= now
+
+
 @router.get("", response_model=list[HouseholdSummaryResponse])
 def list_households(session: DbSession, user: CurrentUser) -> list[HouseholdSummaryResponse]:
     memberships = list(
         session.scalars(
-            select(HouseholdMember).options(selectinload(HouseholdMember.household)).join(HouseholdMember.household).where(HouseholdMember.user_id == user.id).order_by(Household.created_at.asc())
+            select(HouseholdMember)
+            .options(selectinload(HouseholdMember.household))
+            .join(HouseholdMember.household)
+            .where(HouseholdMember.user_id == user.id)
+            .order_by(Household.created_at.asc())
         )
     )
     return [_summary_response(membership, user.active_household_id) for membership in memberships]
@@ -85,7 +111,12 @@ def create_household(
 def get_current_household(session: DbSession, user: CurrentUser) -> HouseholdDetailResponse:
     membership = active_household_membership(session, user.id)
     members = list(
-        session.scalars(select(HouseholdMember).options(selectinload(HouseholdMember.user)).where(HouseholdMember.household_id == membership.household_id).order_by(HouseholdMember.created_at.asc()))
+        session.scalars(
+            select(HouseholdMember)
+            .options(selectinload(HouseholdMember.user))
+            .where(HouseholdMember.household_id == membership.household_id)
+            .order_by(HouseholdMember.created_at.asc())
+        )
     )
     return HouseholdDetailResponse(
         **_summary_response(membership, user.active_household_id).model_dump(),
@@ -105,6 +136,140 @@ def rename_current_household(
     session.commit()
     session.refresh(household)
     return _summary_response(owner_membership, user.active_household_id)
+
+
+@router.get("/current/invites", response_model=list[HouseholdInviteResponse])
+def list_current_household_invites(
+    session: DbSession,
+    user: CurrentUser,
+) -> list[HouseholdInviteResponse]:
+    owner_membership = require_active_household_owner(session, user.id)
+    now = datetime.now(UTC)
+    invites = list(
+        session.scalars(
+            select(HouseholdInvite)
+            .where(
+                HouseholdInvite.household_id == owner_membership.household_id,
+                HouseholdInvite.accepted_at.is_(None),
+                HouseholdInvite.revoked_at.is_(None),
+            )
+            .order_by(HouseholdInvite.created_at.desc())
+        )
+    )
+    return [_invite_response(invite) for invite in invites if not _invite_is_expired(invite.expires_at, now)]
+
+
+@router.post(
+    "/current/invites",
+    response_model=HouseholdInviteCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_current_household_invite(
+    payload: HouseholdInviteCreate,
+    session: DbSession,
+    user: CurrentUser,
+) -> HouseholdInviteCreateResponse:
+    owner_membership = require_active_household_owner(session, user.id)
+    settings = get_settings()
+    expires_in_hours = payload.expires_in_hours or settings.household_invite_default_expires_hours
+    code = create_household_invite_code()
+    code_hash = household_invite_code_hash(code)
+    if code_hash is None:
+        raise RuntimeError("Generated household invite code was invalid.")
+
+    invite = HouseholdInvite(
+        household_id=owner_membership.household_id,
+        created_by_user_id=user.id,
+        code_hash=code_hash,
+        expires_at=datetime.now(UTC) + timedelta(hours=expires_in_hours),
+    )
+    session.add(invite)
+    session.commit()
+    session.refresh(invite)
+    return HouseholdInviteCreateResponse(
+        id=invite.id,
+        code=code,
+        expires_at=invite.expires_at,
+        created_at=invite.created_at,
+    )
+
+
+@router.delete("/current/invites/{invite_id}", status_code=status.HTTP_204_NO_CONTENT)
+def revoke_current_household_invite(
+    invite_id: str,
+    session: DbSession,
+    user: CurrentUser,
+) -> None:
+    owner_membership = require_active_household_owner(session, user.id)
+    invite = session.get(HouseholdInvite, invite_id)
+    now = datetime.now(UTC)
+    if invite is None or invite.household_id != owner_membership.household_id:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "invite_not_found", "message": "Invitation was not found."},
+        )
+    if invite.accepted_at is not None or invite.revoked_at is not None or _invite_is_expired(invite.expires_at, now):
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "invite_not_active", "message": "Invitation is no longer active."},
+        )
+    invite.revoked_at = now
+    session.commit()
+
+
+@router.post("/invites/accept", response_model=HouseholdSummaryResponse)
+def accept_household_invite(
+    payload: HouseholdInviteAccept,
+    session: DbSession,
+    user: CurrentUser,
+) -> HouseholdSummaryResponse:
+    code_hash = household_invite_code_hash(payload.code)
+    if code_hash is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "invite_invalid", "message": "Invitation is invalid or expired."},
+        )
+
+    invite = session.scalar(
+        select(HouseholdInvite)
+        .options(selectinload(HouseholdInvite.household))
+        .where(HouseholdInvite.code_hash == code_hash)
+        .with_for_update()
+    )
+    now = datetime.now(UTC)
+    if (
+        invite is None
+        or invite.accepted_at is not None
+        or invite.revoked_at is not None
+        or _invite_is_expired(invite.expires_at, now)
+    ):
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "invite_invalid", "message": "Invitation is invalid or expired."},
+        )
+
+    existing_membership = session.get(
+        HouseholdMember,
+        {"household_id": invite.household_id, "user_id": user.id},
+    )
+    if existing_membership is not None:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "member_exists", "message": "You are already a household member."},
+        )
+
+    membership = HouseholdMember(
+        household_id=invite.household_id,
+        user_id=user.id,
+        role="member",
+    )
+    session.add(membership)
+    invite.accepted_at = now
+    invite.accepted_by_user_id = user.id
+    user.active_household_id = invite.household_id
+    session.commit()
+    session.refresh(membership)
+    return _summary_response(membership, user.active_household_id)
 
 
 @router.post("/{household_id}/select", response_model=HouseholdSummaryResponse)
