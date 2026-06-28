@@ -19,6 +19,14 @@ class AttachmentTooLargeError(AttachmentStorageError):
     """Raised when an upload exceeds the configured byte limit."""
 
 
+class AttachmentEmptyError(AttachmentStorageError):
+    """Raised when an upload contains no bytes."""
+
+
+class AttachmentContentMismatchError(AttachmentStorageError):
+    """Raised when declared MIME type and file signature do not match."""
+
+
 @dataclass(frozen=True)
 class StoredAttachment:
     storage_key: str
@@ -27,7 +35,13 @@ class StoredAttachment:
 
 
 class AttachmentStorage(Protocol):
-    async def save(self, upload: UploadFile, *, max_bytes: int) -> StoredAttachment: ...
+    async def save(
+        self,
+        upload: UploadFile,
+        *,
+        content_type: str,
+        max_bytes: int,
+    ) -> StoredAttachment: ...
 
     def path_for(self, storage_key: str) -> Path: ...
 
@@ -35,7 +49,7 @@ class AttachmentStorage(Protocol):
 
 
 class LocalAttachmentStorage:
-    """Stores attachment bytes in a private local directory.
+    """Stores permitted receipt bytes in a private local directory.
 
     Database rows retain only an opaque generated storage key. Original filenames
     never participate in the on-disk path, so user input cannot influence where a
@@ -47,7 +61,13 @@ class LocalAttachmentStorage:
     def __init__(self, base_path: str | Path):
         self._base_path = Path(base_path).expanduser().resolve()
 
-    async def save(self, upload: UploadFile, *, max_bytes: int) -> StoredAttachment:
+    async def save(
+        self,
+        upload: UploadFile,
+        *,
+        content_type: str,
+        max_bytes: int,
+    ) -> StoredAttachment:
         self._base_path.mkdir(mode=0o700, parents=True, exist_ok=True)
         storage_key = uuid4().hex
         target_path = self.path_for(storage_key)
@@ -56,13 +76,21 @@ class LocalAttachmentStorage:
         size_bytes = 0
 
         try:
+            first_chunk = await upload.read(self._chunk_size)
+            if not first_chunk:
+                raise AttachmentEmptyError
+            if not self._matches_signature(content_type, first_chunk):
+                raise AttachmentContentMismatchError
+
             with temporary_path.open("xb") as destination:
-                while chunk := await upload.read(self._chunk_size):
+                chunk = first_chunk
+                while chunk:
                     size_bytes += len(chunk)
                     if size_bytes > max_bytes:
                         raise AttachmentTooLargeError
                     digest.update(chunk)
                     destination.write(chunk)
+                    chunk = await upload.read(self._chunk_size)
             os.replace(temporary_path, target_path)
         except Exception:
             temporary_path.unlink(missing_ok=True)
@@ -89,3 +117,17 @@ class LocalAttachmentStorage:
         if not self._base_path.exists():
             return ()
         return (path.name for path in self._base_path.iterdir() if path.is_file())
+
+    @staticmethod
+    def _matches_signature(content_type: str, header: bytes) -> bool:
+        return (
+            (content_type == "application/pdf" and header.startswith(b"%PDF-"))
+            or (content_type == "image/jpeg" and header.startswith(b"\xff\xd8\xff"))
+            or (content_type == "image/png" and header.startswith(b"\x89PNG\r\n\x1a\n"))
+            or (
+                content_type == "image/webp"
+                and len(header) >= 12
+                and header.startswith(b"RIFF")
+                and header[8:12] == b"WEBP"
+            )
+        )
