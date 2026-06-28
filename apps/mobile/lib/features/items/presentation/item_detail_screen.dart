@@ -6,6 +6,7 @@ import '../../../core/localization/app_localizations.dart';
 import '../../dashboard/presentation/item_list_controller.dart';
 import '../../maintenance/domain/maintenance_task.dart';
 import '../../maintenance/presentation/item_maintenance_tasks_provider.dart';
+import '../../maintenance/presentation/maintenance_history_controller.dart';
 import '../../maintenance/presentation/maintenance_list_controller.dart';
 import '../../maintenance/presentation/maintenance_localizations.dart';
 import '../domain/home_item.dart';
@@ -170,6 +171,10 @@ class _ItemDetails extends ConsumerWidget {
           _ItemMaintenanceSection(
             item: item,
             onAddTask: () => _openMaintenanceForm(context, ref),
+            onOpenHistory: () => context.push(
+              '/items/${item.id}/maintenance-history',
+              extra: item,
+            ),
           ),
         ],
       ),
@@ -178,10 +183,15 @@ class _ItemDetails extends ConsumerWidget {
 }
 
 class _ItemMaintenanceSection extends ConsumerStatefulWidget {
-  const _ItemMaintenanceSection({required this.item, required this.onAddTask});
+  const _ItemMaintenanceSection({
+    required this.item,
+    required this.onAddTask,
+    required this.onOpenHistory,
+  });
 
   final HomeItem item;
   final Future<void> Function() onAddTask;
+  final VoidCallback onOpenHistory;
 
   @override
   ConsumerState<_ItemMaintenanceSection> createState() => _ItemMaintenanceSectionState();
@@ -194,6 +204,8 @@ class _ItemMaintenanceSectionState extends ConsumerState<_ItemMaintenanceSection
     setState(() => _completingTaskId = task.id);
     try {
       await ref.read(maintenanceListControllerProvider.notifier).completeTask(task.id);
+      ref.invalidate(maintenanceHistoryProvider(null));
+      ref.invalidate(maintenanceHistoryProvider(widget.item.id));
       ref.invalidate(itemMaintenanceTasksProvider(widget.item.id));
       if (!mounted) {
         return;
@@ -230,14 +242,21 @@ class _ItemMaintenanceSectionState extends ConsumerState<_ItemMaintenanceSection
                 Expanded(
                   child: Text(l10n.maintenance, style: Theme.of(context).textTheme.titleMedium),
                 ),
-                TextButton.icon(
-                  onPressed: () {
-                    widget.onAddTask();
-                  },
-                  icon: const Icon(Icons.add),
-                  label: Text(l10n.addMaintenance),
+                IconButton(
+                  key: const ValueKey('item-maintenance-history-action'),
+                  tooltip: l10n.maintenanceHistory,
+                  icon: const Icon(Icons.history_outlined),
+                  onPressed: widget.onOpenHistory,
                 ),
               ],
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: widget.onAddTask,
+                icon: const Icon(Icons.add),
+                label: Text(l10n.addMaintenance),
+              ),
             ),
             const SizedBox(height: 8),
             tasks.when(

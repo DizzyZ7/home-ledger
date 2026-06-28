@@ -7,20 +7,28 @@ import 'maintenance_history_controller.dart';
 import 'maintenance_localizations.dart';
 
 class MaintenanceHistoryScreen extends ConsumerWidget {
-  const MaintenanceHistoryScreen({super.key});
+  const MaintenanceHistoryScreen({
+    this.itemId,
+    this.itemName,
+    super.key,
+  });
+
+  final String? itemId;
+  final String? itemName;
 
   Future<void> _refresh(WidgetRef ref) async {
-    ref.invalidate(maintenanceHistoryProvider);
-    await ref.read(maintenanceHistoryProvider.future);
+    ref.invalidate(maintenanceHistoryProvider(itemId));
+    await ref.read(maintenanceHistoryProvider(itemId).future);
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
-    final history = ref.watch(maintenanceHistoryProvider);
+    final history = ref.watch(maintenanceHistoryProvider(itemId));
+    final title = itemName == null ? l10n.maintenanceHistory : '${l10n.maintenanceHistory}: $itemName';
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.maintenanceHistory)),
+      appBar: AppBar(title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis)),
       body: history.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, __) => _HistoryErrorState(onRetry: () => _refresh(ref)),
@@ -31,7 +39,10 @@ class MaintenanceHistoryScreen extends ConsumerWidget {
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(24),
-                children: const [_HistoryEmptyState()],
+                children: [
+                  if (itemName != null) _HistoryScopeBanner(itemName: itemName!),
+                  const _HistoryEmptyState(),
+                ],
               ),
             );
           }
@@ -40,12 +51,34 @@ class MaintenanceHistoryScreen extends ConsumerWidget {
             onRefresh: () => _refresh(ref),
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-              itemCount: entries.length,
+              itemCount: entries.length + (itemName == null ? 0 : 1),
               separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) => _CompletionTile(entry: entries[index]),
+              itemBuilder: (context, index) {
+                if (itemName != null && index == 0) {
+                  return _HistoryScopeBanner(itemName: itemName!);
+                }
+                final entryIndex = itemName == null ? index : index - 1;
+                return _CompletionTile(entry: entries[entryIndex]);
+              },
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _HistoryScopeBanner extends StatelessWidget {
+  const _HistoryScopeBanner({required this.itemName});
+
+  final String itemName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Text(context.l10n.itemContext(itemName)),
       ),
     );
   }

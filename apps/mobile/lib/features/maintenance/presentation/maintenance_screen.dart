@@ -24,7 +24,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
     setState(() => _completingTaskId = task.id);
     try {
       await ref.read(maintenanceListControllerProvider.notifier).completeTask(task.id);
-      ref.invalidate(maintenanceHistoryProvider);
+      ref.invalidate(maintenanceHistoryProvider(null));
       if (!mounted) {
         return;
       }
