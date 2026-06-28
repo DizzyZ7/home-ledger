@@ -21,51 +21,55 @@ void main() {
     await cacheDirectory.delete(recursive: true);
   });
 
-  test('keeps inventory snapshots isolated by household', () async {
-    final personalCache = HomeItemCache(householdId: 'personal');
-    final sharedCache = HomeItemCache(householdId: 'shared');
+  test('keeps inventory snapshots isolated by user and household', () async {
+    final ownerCache = HomeItemCache(householdId: 'shared-home', userId: 'owner');
+    final guestCache = HomeItemCache(householdId: 'shared-home', userId: 'guest');
+    final secondHomeCache = HomeItemCache(householdId: 'second-home', userId: 'owner');
 
-    await personalCache.write([
-      const HomeItem(id: 'router', name: 'Personal router', category: 'electronics'),
+    await ownerCache.write([
+      const HomeItem(id: 'router', name: 'Owner router', category: 'electronics'),
     ]);
 
-    expect((await personalCache.read()).single.name, 'Personal router');
-    expect(await sharedCache.read(), isEmpty);
+    expect((await ownerCache.read()).single.name, 'Owner router');
+    expect(await guestCache.read(), isEmpty);
+    expect(await secondHomeCache.read(), isEmpty);
   });
 
-  test('keeps maintenance tasks and history isolated by household', () async {
-    final personalCache = MaintenanceTaskCache(
+  test('keeps maintenance tasks and history isolated by user and household', () async {
+    final ownerCache = MaintenanceTaskCache(
       boxName: 'household-maintenance-cache',
-      householdId: 'personal',
+      householdId: 'shared-home',
+      userId: 'owner',
     );
-    final sharedCache = MaintenanceTaskCache(
+    final guestCache = MaintenanceTaskCache(
       boxName: 'household-maintenance-cache',
-      householdId: 'shared',
+      householdId: 'shared-home',
+      userId: 'guest',
     );
     final task = MaintenanceTask(
-      id: 'personal-task',
+      id: 'owner-task',
       itemId: 'router',
-      itemName: 'Personal router',
+      itemName: 'Owner router',
       title: 'Review firmware',
       frequencyDays: 90,
       nextDueDate: DateTime(2026, 7, 15),
     );
     final completion = MaintenanceCompletion(
-      id: 'personal-completion',
-      householdId: 'personal',
+      id: 'owner-completion',
+      householdId: 'shared-home',
       itemId: 'router',
-      itemName: 'Personal router',
+      itemName: 'Owner router',
       taskId: task.id,
       taskTitle: task.title,
       completedAt: DateTime.utc(2026, 7, 1),
     );
 
-    await personalCache.write([task]);
-    await personalCache.writeHistory([completion]);
+    await ownerCache.write([task]);
+    await ownerCache.writeHistory([completion]);
 
-    expect((await personalCache.read())!.single.id, task.id);
-    expect((await personalCache.readHistory())!.single.id, completion.id);
-    expect(await sharedCache.read(), isNull);
-    expect(await sharedCache.readHistory(), isNull);
+    expect((await ownerCache.read())!.single.id, task.id);
+    expect((await ownerCache.readHistory())!.single.id, completion.id);
+    expect(await guestCache.read(), isNull);
+    expect(await guestCache.readHistory(), isNull);
   });
 }
