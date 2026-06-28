@@ -35,12 +35,20 @@ class AppSettingsController extends Notifier<AppSettings> {
   }
 
   Future<void> _restore() async {
-    final restored = await ref.read(appSettingsStoreProvider).read();
-    state = restored;
+    try {
+      final restored = await ref.read(appSettingsStoreProvider).read();
+      state = restored;
+    } on Object {
+      // The app remains usable with in-memory defaults when optional storage is unavailable.
+    }
   }
 
   Future<void> _save(AppSettings next) async {
     state = next;
-    await ref.read(appSettingsStoreProvider).write(next);
+    try {
+      await ref.read(appSettingsStoreProvider).write(next);
+    } on Object {
+      // UI state remains valid even when optional persistence fails.
+    }
   }
 }
