@@ -63,11 +63,7 @@ def list_items(
         else:
             filters.append(HomeItem.warranty_expires_at.is_(None))
 
-    order_by = (
-        HomeItem.warranty_expires_at.asc()
-        if warranty_state is not None and warranty_state != "none"
-        else HomeItem.created_at.desc()
-    )
+    order_by = HomeItem.warranty_expires_at.asc() if warranty_state is not None and warranty_state != "none" else HomeItem.created_at.desc()
     statement = select(HomeItem).where(*filters).order_by(order_by).offset((page - 1) * page_size).limit(page_size)
     count_statement = select(func.count()).select_from(HomeItem).where(*filters)
     return Page[ItemResponse](
