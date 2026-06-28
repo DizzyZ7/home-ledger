@@ -1,8 +1,11 @@
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import Field
 
 from app.schemas.common import APIModel
+
+DocumentType = Literal["receipt", "warranty", "manual", "other"]
 
 
 class ItemCreate(APIModel):
@@ -35,6 +38,19 @@ class ItemResponse(APIModel):
     purchase_date: date | None
     warranty_expires_at: date | None
     notes: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ItemDocumentResponse(APIModel):
+    id: str
+    household_id: str
+    item_id: str
+    uploaded_by_id: str
+    document_type: DocumentType
+    original_filename: str
+    content_type: str
+    size_bytes: int
     created_at: datetime
     updated_at: datetime
 
