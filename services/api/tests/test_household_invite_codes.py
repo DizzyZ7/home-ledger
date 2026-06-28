@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
-from app.api.routes.households import _invite_is_expired
+from app.api.routes.household_invites import _invite_is_expired
 from app.services.household_invites import create_household_invite_code, household_invite_code_hash
 
 
