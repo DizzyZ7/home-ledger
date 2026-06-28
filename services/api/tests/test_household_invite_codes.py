@@ -1,0 +1,1 @@
+# Household invitation code tests.
