@@ -9,7 +9,7 @@ description = "Self-hosted API for HomeLedger."
 requires-python = ">=3.12"
 dependencies = [
   "alembic>=1.14,<2",
-  "email-validator>=2.2,<1",
+  "email-validator>=2.2,<3",
   "fastapi>=0.115,<1",
   "pwdlib[argon2]>=0.2,<1",
   "pydantic-settings>=2.7,<3",
