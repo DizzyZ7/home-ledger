@@ -7,9 +7,10 @@ from sqlalchemy.orm import selectinload
 from app.api.dependencies import CurrentUser, DbSession
 from app.api.routes.items import _default_household, _owned_item
 from app.models.item import HomeItem
-from app.models.maintenance import MaintenanceTask
+from app.models.maintenance import MaintenanceCompletion, MaintenanceTask
 from app.schemas.common import Page
 from app.schemas.items import (
+    MaintenanceCompletionResponse,
     MaintenanceTaskCreate,
     MaintenanceTaskResponse,
     MaintenanceTaskUpdate,
@@ -79,10 +80,56 @@ def list_tasks(
         .offset((page - 1) * page_size)
         .limit(page_size)
     )
-    total_statement = select(func.count()).select_from(MaintenanceTask).join(MaintenanceTask.item).where(*filters)
+    total_statement = (
+        select(func.count())
+        .select_from(MaintenanceTask)
+        .join(MaintenanceTask.item)
+        .where(*filters)
+    )
     tasks = list(session.scalars(statement))
     total = session.scalar(total_statement) or 0
     return Page[MaintenanceTaskResponse](items=tasks, page=page, page_size=page_size, total=total)
+
+
+@router.get("/history", response_model=Page[MaintenanceCompletionResponse])
+def list_completion_history(
+    session: DbSession,
+    user: CurrentUser,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=30, ge=1, le=100),
+    item_id: str | None = Query(default=None, min_length=1, max_length=36),
+) -> Page[MaintenanceCompletionResponse]:
+    household = _default_household(session, user.id)
+    filters = [
+        MaintenanceCompletion.household_id == household.id,
+        HomeItem.archived_at.is_(None),
+    ]
+    if item_id is not None:
+        filters.append(MaintenanceCompletion.item_id == item_id)
+
+    statement = (
+        select(MaintenanceCompletion)
+        .join(MaintenanceCompletion.item)
+        .options(selectinload(MaintenanceCompletion.item))
+        .where(*filters)
+        .order_by(MaintenanceCompletion.completed_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+    total_statement = (
+        select(func.count())
+        .select_from(MaintenanceCompletion)
+        .join(MaintenanceCompletion.item)
+        .where(*filters)
+    )
+    completions = list(session.scalars(statement))
+    total = session.scalar(total_statement) or 0
+    return Page[MaintenanceCompletionResponse](
+        items=completions,
+        page=page,
+        page_size=page_size,
+        total=total,
+    )
 
 
 @router.post("", response_model=MaintenanceTaskResponse, status_code=status.HTTP_201_CREATED)
@@ -120,7 +167,17 @@ def update_task(
 @router.post("/{task_id}/complete", response_model=MaintenanceTaskResponse)
 def complete_task(task_id: str, session: DbSession, user: CurrentUser) -> MaintenanceTask:
     task = _owned_task(session, user.id, task_id)
-    task.completed_at = datetime.now(UTC)
+    completed_at = datetime.now(UTC)
+    session.add(
+        MaintenanceCompletion(
+            household_id=task.household_id,
+            item_id=task.item_id,
+            task_id=task.id,
+            task_title=task.title,
+            completed_at=completed_at,
+        )
+    )
+    task.completed_at = completed_at
     task.next_due_date = task.next_due_date + timedelta(days=task.frequency_days)
     session.commit()
     session.refresh(task)
