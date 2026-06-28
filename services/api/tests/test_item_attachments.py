@@ -77,7 +77,9 @@ def test_upload_list_download_and_delete_item_attachment(client, attachment_dire
     )
     assert deleted.status_code == 204
     assert list(attachment_directory.iterdir()) == []
-    assert client.get(f"/api/v1/items/{item['id']}/attachments", headers=headers).json()["total"] == 0
+
+    after_delete = client.get(f"/api/v1/items/{item['id']}/attachments", headers=headers)
+    assert after_delete.json()["total"] == 0
 
 
 def test_attachment_endpoints_hide_other_households_data(client, attachment_directory):
@@ -94,14 +96,14 @@ def test_attachment_endpoints_hide_other_households_data(client, attachment_dire
     other_token = _access_token(client, email="another-owner@example.com")
     other_headers = {"Authorization": f"Bearer {other_token}"}
 
-    assert client.get(f"/api/v1/items/{item['id']}/attachments", headers=other_headers).status_code == 404
-    assert (
-        client.get(
-            f"/api/v1/items/{item['id']}/attachments/{uploaded.json()['id']}/download",
-            headers=other_headers,
-        ).status_code
-        == 404
+    listed = client.get(f"/api/v1/items/{item['id']}/attachments", headers=other_headers)
+    assert listed.status_code == 404
+
+    downloaded = client.get(
+        f"/api/v1/items/{item['id']}/attachments/{uploaded.json()['id']}/download",
+        headers=other_headers,
     )
+    assert downloaded.status_code == 404
 
 
 def test_attachment_upload_rejects_invalid_files(client, attachment_directory, monkeypatch):
@@ -141,3 +143,27 @@ def test_attachment_upload_rejects_invalid_files(client, attachment_directory, m
     )
     assert too_large.status_code == 413
     assert list(attachment_directory.iterdir()) == []
+
+
+def test_attachment_upload_enforces_per_item_limit(client, attachment_directory, monkeypatch):
+    monkeypatch.setenv("ATTACHMENT_MAX_FILES_PER_ITEM", "1")
+    get_settings.cache_clear()
+    token = _access_token(client, email="attachment-owner@example.com")
+    headers = {"Authorization": f"Bearer {token}"}
+    item = _create_item(client, headers)
+
+    first = client.post(
+        f"/api/v1/items/{item['id']}/attachments",
+        headers=headers,
+        files={"file": ("first.pdf", b"%PDF-first", "application/pdf")},
+    )
+    assert first.status_code == 201
+
+    second = client.post(
+        f"/api/v1/items/{item['id']}/attachments",
+        headers=headers,
+        files={"file": ("second.pdf", b"%PDF-second", "application/pdf")},
+    )
+    assert second.status_code == 409
+    assert second.json()["detail"]["code"] == "attachment_limit_reached"
+    assert len(list(attachment_directory.iterdir())) == 1
