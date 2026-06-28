@@ -8,6 +8,7 @@ import '../../../core/localization/app_localizations.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../items/domain/home_item.dart';
 import '../../items/presentation/item_localizations.dart';
+import 'dashboard_attention_summary.dart';
 import 'item_list_controller.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -61,7 +62,7 @@ class HomeScreen extends ConsumerWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
               children: [
-                _AttentionSummary(items: data),
+                DashboardAttentionSummary(items: data),
                 const SizedBox(height: 16),
                 Text(l10n.allItems, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 8),
@@ -70,43 +71,6 @@ class HomeScreen extends ConsumerWidget {
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-class _AttentionSummary extends StatelessWidget {
-  const _AttentionSummary({required this.items});
-
-  final List<HomeItem> items;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final deadline = DateTime.now().add(const Duration(days: 45));
-    final expiring = items.where((item) {
-      final warranty = item.warrantyExpiresAt;
-      return warranty != null && warranty.isBefore(deadline);
-    }).length;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(Icons.notifications_active_outlined, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(l10n.attention, style: Theme.of(context).textTheme.titleSmall),
-                  Text('$expiring ${l10n.inventory.toLowerCase()}'),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
