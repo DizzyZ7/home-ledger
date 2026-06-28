@@ -22,11 +22,23 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000,http://localhost:8080"
     rate_limit_requests: int = Field(default=120, ge=1, le=10000)
     rate_limit_window_seconds: int = Field(default=60, ge=1, le=3600)
+    attachment_storage_path: str = "./data/attachments"
+    attachment_max_bytes: int = Field(default=10 * 1024 * 1024, ge=1024, le=100 * 1024 * 1024)
+    attachment_max_files_per_item: int = Field(default=20, ge=1, le=100)
+    attachment_allowed_content_types: str = "application/pdf,image/jpeg,image/png,image/webp"
     log_level: str = "INFO"
 
     @property
     def parsed_cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def parsed_attachment_content_types(self) -> set[str]:
+        return {
+            content_type.strip().lower()
+            for content_type in self.attachment_allowed_content_types.split(",")
+            if content_type.strip()
+        }
 
 
 @lru_cache
