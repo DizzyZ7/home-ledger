@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     database_url: str = "postgresql+psycopg://homeledger:change-me-local-only@localhost:5432/homeledger"
     jwt_secret_key: str = Field(min_length=32)
+    household_invite_secret_key: str | None = Field(default=None, min_length=32)
+    household_invite_default_expires_hours: int = Field(default=72, ge=1, le=168)
     jwt_algorithm: str = "HS256"
     jwt_access_token_expires_minutes: int = Field(default=30, ge=5, le=1440)
     jwt_refresh_token_expires_days: int = Field(default=30, ge=1, le=365)
@@ -39,6 +41,10 @@ class Settings(BaseSettings):
             for content_type in self.attachment_allowed_content_types.split(",")
             if content_type.strip()
         }
+
+    @property
+    def invite_code_secret(self) -> str:
+        return self.household_invite_secret_key or self.jwt_secret_key
 
 
 @lru_cache
