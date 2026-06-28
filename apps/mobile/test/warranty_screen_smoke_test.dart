@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:home_ledger/app.dart';
@@ -7,7 +8,12 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: HomeLedgerApp()));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Гарантии'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('Гарантии'),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Скоро заканчиваются'), findsOneWidget);
