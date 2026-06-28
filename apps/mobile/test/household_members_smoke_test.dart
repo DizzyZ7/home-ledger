@@ -22,12 +22,15 @@ void main() {
 
     expect(find.text('guest'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('household-remove-member-mock-member-anna')));
+    final removeAnna = find.byKey(const ValueKey('household-remove-member-mock-member-anna'));
+    await tester.ensureVisible(removeAnna);
+    await tester.tap(removeAnna);
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Удалить участника'));
     await tester.pumpAndSettle();
 
     expect(find.text('Анна'), findsNothing);
+    expect(find.text('guest'), findsOneWidget);
   });
 
   testWidgets('member sees household roster without owner controls', (tester) async {
