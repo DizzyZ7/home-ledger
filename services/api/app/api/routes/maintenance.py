@@ -80,12 +80,7 @@ def list_tasks(
         .offset((page - 1) * page_size)
         .limit(page_size)
     )
-    total_statement = (
-        select(func.count())
-        .select_from(MaintenanceTask)
-        .join(MaintenanceTask.item)
-        .where(*filters)
-    )
+    total_statement = select(func.count()).select_from(MaintenanceTask).join(MaintenanceTask.item).where(*filters)
     tasks = list(session.scalars(statement))
     total = session.scalar(total_statement) or 0
     return Page[MaintenanceTaskResponse](items=tasks, page=page, page_size=page_size, total=total)
@@ -116,12 +111,7 @@ def list_completion_history(
         .offset((page - 1) * page_size)
         .limit(page_size)
     )
-    total_statement = (
-        select(func.count())
-        .select_from(MaintenanceCompletion)
-        .join(MaintenanceCompletion.item)
-        .where(*filters)
-    )
+    total_statement = select(func.count()).select_from(MaintenanceCompletion).join(MaintenanceCompletion.item).where(*filters)
     completions = list(session.scalars(statement))
     total = session.scalar(total_statement) or 0
     return Page[MaintenanceCompletionResponse](
