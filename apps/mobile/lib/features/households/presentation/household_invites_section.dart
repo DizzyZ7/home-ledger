@@ -9,6 +9,12 @@ import '../domain/household_invite.dart';
 import 'household_invites_provider.dart';
 import 'household_localizations.dart';
 
+String _formatInvitationExpiry(MaterialLocalizations localizations, DateTime value) {
+  final local = value.toLocal();
+  return '${localizations.formatMediumDate(local)} '
+      '${localizations.formatTimeOfDay(TimeOfDay.fromDateTime(local))}';
+}
+
 class HouseholdInvitesSection extends ConsumerStatefulWidget {
   const HouseholdInvitesSection({super.key});
 
@@ -191,7 +197,7 @@ class _InviteCodeDialog extends StatelessWidget {
             style: Theme.of(context).textTheme.titleMedium?.copyWith(letterSpacing: 1.1),
           ),
           const SizedBox(height: 12),
-          Text('${context.invitationExpires}: ${localizations.formatMediumDate(invite.invite.expiresAt.toLocal())}'),
+          Text('${context.invitationExpires}: ${_formatInvitationExpiry(localizations, invite.invite.expiresAt)}'),
           const SizedBox(height: 8),
           Text(context.invitationCodeSecurityHint),
         ],
@@ -237,7 +243,7 @@ class _InviteTile extends StatelessWidget {
       contentPadding: EdgeInsets.zero,
       leading: const Icon(Icons.key_outlined),
       title: Text(context.invitationExpires),
-      subtitle: Text(localizations.formatMediumDate(invite.expiresAt.toLocal())),
+      subtitle: Text(_formatInvitationExpiry(localizations, invite.expiresAt)),
       trailing: revoking
           ? const SizedBox(
               width: 24,
