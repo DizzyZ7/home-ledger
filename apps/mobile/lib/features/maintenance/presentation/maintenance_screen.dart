@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/localization/app_localizations.dart';
 import '../domain/maintenance_task.dart';
+import 'maintenance_filter.dart';
+import 'maintenance_filter_localizations.dart';
 import 'maintenance_list_controller.dart';
 import 'maintenance_localizations.dart';
 
@@ -43,6 +45,7 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
   @override
   Widget build(BuildContext context) {
     final tasks = ref.watch(maintenanceListControllerProvider);
+    final selectedFilter = ref.watch(maintenanceFilterProvider);
     final l10n = context.l10n;
 
     return Scaffold(
@@ -56,23 +59,82 @@ class _MaintenanceScreenState extends ConsumerState<MaintenanceScreen> {
           if (data.isEmpty) {
             return const _MaintenanceEmptyState();
           }
+
+          final filteredTasks = filterMaintenanceTasks(
+            data,
+            filter: selectedFilter,
+          );
           return RefreshIndicator(
             onRefresh: () => ref.read(maintenanceListControllerProvider.notifier).refresh(),
-            child: ListView.separated(
+            child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-              itemCount: data.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final task = data[index];
-                return _MaintenanceTaskTile(
-                  task: task,
-                  isCompleting: _completingTaskId == task.id,
-                  onComplete: () => _completeTask(task),
-                );
-              },
+              children: [
+                _MaintenanceFilterBar(
+                  tasks: data,
+                  selectedFilter: selectedFilter,
+                  onSelected: (filter) => ref.read(maintenanceFilterProvider.notifier).state = filter,
+                ),
+                const SizedBox(height: 12),
+                if (filteredTasks.isEmpty)
+                  _MaintenanceFilterEmptyState(filter: selectedFilter)
+                else
+                  ...filteredTasks.expand(
+                    (task) => [
+                      _MaintenanceTaskTile(
+                        task: task,
+                        isCompleting: _completingTaskId == task.id,
+                        onComplete: () => _completeTask(task),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+              ],
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _MaintenanceFilterBar extends StatelessWidget {
+  const _MaintenanceFilterBar({
+    required this.tasks,
+    required this.selectedFilter,
+    required this.onSelected,
+  });
+
+  final List<MaintenanceTask> tasks;
+  final MaintenanceFilter selectedFilter;
+  final ValueChanged<MaintenanceFilter> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    const filters = [
+      MaintenanceFilter.all,
+      MaintenanceFilter.overdue,
+      MaintenanceFilter.upcoming,
+    ];
+
+    return Semantics(
+      label: l10n.maintenance,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (final filter in filters) ...[
+              FilterChip(
+                label: Text(
+                  '${l10n.maintenanceFilterLabel(filter)} (${filterMaintenanceTasks(tasks, filter: filter).length})',
+                ),
+                selected: selectedFilter == filter,
+                onSelected: (_) => onSelected(filter),
+              ),
+              if (filter != filters.last) const SizedBox(width: 8),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -197,6 +259,37 @@ class _MaintenanceEmptyState extends StatelessWidget {
             Text(l10n.noMaintenanceTitle, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(l10n.noMaintenanceBody, textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MaintenanceFilterEmptyState extends StatelessWidget {
+  const _MaintenanceFilterEmptyState({required this.filter});
+
+  final MaintenanceFilter filter;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final title = switch (filter) {
+      MaintenanceFilter.overdue => l10n.noOverdueMaintenance,
+      MaintenanceFilter.upcoming => l10n.noUpcomingMaintenance,
+      MaintenanceFilter.all => l10n.noMaintenanceTitle,
+    };
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const Icon(Icons.filter_alt_off_outlined, size: 36),
+            const SizedBox(height: 12),
+            Text(title, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(l10n.maintenanceFiltersHint, textAlign: TextAlign.center),
           ],
         ),
       ),
