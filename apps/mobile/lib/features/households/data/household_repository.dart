@@ -200,7 +200,13 @@ class MockHouseholdRepository implements HouseholdRepository {
       throw const ApiException('Only the household owner can manage members.');
     }
     final members = _membersByHousehold[active.id]!;
-    final member = members.where((candidate) => candidate.userId == userId).firstOrNull;
+    HouseholdMember? member;
+    for (final candidate in members) {
+      if (candidate.userId == userId) {
+        member = candidate;
+        break;
+      }
+    }
     if (member == null) {
       throw const ApiException('Household member was not found.');
     }
