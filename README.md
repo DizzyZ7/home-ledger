@@ -14,6 +14,23 @@ HomeLedger is a self-hosted Flutter mobile app and FastAPI service for inventory
 - Run mobile mock mode without Docker, accounts, API keys, or external services.
 - Use RU/EN localization, Material 3 light/dark UI, secure tokens, offline cache, tests, and CI.
 
+## Screenshots
+
+> Add redacted screenshots under `docs/images/` before the first public release.
+
+| Dashboard | Item details | Receipt attachments | Maintenance |
+| --- | --- | --- | --- |
+| `docs/images/dashboard.png` | `docs/images/item-detail.png` | `docs/images/item-receipts.png` | `docs/images/maintenance.png` |
+
+## Stack
+
+| Area | Choice |
+| --- | --- |
+| Mobile | Flutter, Riverpod, GoRouter, Dio, Hive, Flutter Secure Storage |
+| Backend | FastAPI, SQLAlchemy 2, Alembic, PostgreSQL, JWT, Argon2 |
+| Attachments | File Picker, private Docker volume, authenticated download endpoint |
+| Quality | pytest, Flutter tests, Ruff, GitHub Actions |
+
 ## Architecture
 
 ```text
