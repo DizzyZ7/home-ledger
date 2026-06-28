@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/maintenance_repository.dart';
+import '../../../core/data/household_scoped_repositories.dart';
 import '../domain/maintenance_task.dart';
 
 final itemMaintenanceTasksProvider =
     FutureProvider.autoDispose.family<List<MaintenanceTask>, String>((ref, itemId) {
-  return ref.watch(maintenanceRepositoryProvider).loadTasks(itemId: itemId);
+  return ref.watch(householdScopedMaintenanceRepositoryProvider).loadTasks(itemId: itemId);
 });

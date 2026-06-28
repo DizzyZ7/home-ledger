@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../items/data/home_item_repository.dart';
+import '../../../core/data/household_scoped_repositories.dart';
 import '../../items/domain/home_item.dart';
 
 final itemListControllerProvider =
@@ -10,21 +10,21 @@ final itemListControllerProvider =
 
 class ItemListController extends AsyncNotifier<List<HomeItem>> {
   @override
-  FutureOr<List<HomeItem>> build() => ref.read(homeItemRepositoryProvider).loadItems();
+  FutureOr<List<HomeItem>> build() => ref.read(householdScopedHomeItemRepositoryProvider).loadItems();
 
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => ref.read(homeItemRepositoryProvider).loadItems());
+    state = await AsyncValue.guard(() => ref.read(householdScopedHomeItemRepositoryProvider).loadItems());
   }
 
   Future<void> add(HomeItem item) async {
     final previous = state.valueOrNull ?? const <HomeItem>[];
-    final created = await ref.read(homeItemRepositoryProvider).createItem(item);
+    final created = await ref.read(householdScopedHomeItemRepositoryProvider).createItem(item);
     state = AsyncData([created, ...previous]);
   }
 
   Future<void> updateItem(HomeItem item) async {
-    final updated = await ref.read(homeItemRepositoryProvider).updateItem(item);
+    final updated = await ref.read(householdScopedHomeItemRepositoryProvider).updateItem(item);
     final current = state.valueOrNull ?? const <HomeItem>[];
     state = AsyncData([
       for (final existing in current)
@@ -33,7 +33,7 @@ class ItemListController extends AsyncNotifier<List<HomeItem>> {
   }
 
   Future<void> archiveItem(String itemId) async {
-    await ref.read(homeItemRepositoryProvider).archiveItem(itemId);
+    await ref.read(householdScopedHomeItemRepositoryProvider).archiveItem(itemId);
     final current = state.valueOrNull ?? const <HomeItem>[];
     state = AsyncData(current.where((item) => item.id != itemId).toList(growable: false));
   }
