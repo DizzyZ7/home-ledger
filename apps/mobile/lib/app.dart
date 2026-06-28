@@ -10,6 +10,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/auth_screen.dart';
 import 'features/auth/presentation/session_controller.dart';
 import 'features/dashboard/presentation/dashboard_shell.dart';
+import 'features/households/presentation/household_invite_accept_screen.dart';
 import 'features/households/presentation/household_members_screen.dart';
 import 'features/households/presentation/household_switcher_screen.dart';
 import 'features/items/domain/home_item.dart';
@@ -37,6 +38,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'households',
             builder: (context, state) => const HouseholdSwitcherScreen(),
+          ),
+          GoRoute(
+            path: 'households/join',
+            builder: (context, state) => const HouseholdInviteAcceptScreen(),
           ),
           GoRoute(
             path: 'households/members',
