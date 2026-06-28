@@ -131,7 +131,6 @@ class _WarrantyItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
     final warrantyDate = item.warrantyExpiresAt!;
     final status = _statusText(context, warrantyDate);
     final date = MaterialLocalizations.of(context).formatMediumDate(warrantyDate);
