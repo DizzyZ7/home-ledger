@@ -1,7 +1,7 @@
 from datetime import UTC, date, datetime, timedelta
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 from sqlalchemy import func, select
 
 from app.api.dependencies import CurrentUser, DbSession
@@ -9,6 +9,7 @@ from app.api.household_access import active_household_for_user
 from app.models.item import HomeItem
 from app.schemas.common import Page
 from app.schemas.items import ItemCreate, ItemResponse, ItemUpdate
+from app.services.inventory_export import inventory_csv
 
 router = APIRouter(prefix="/items", tags=["items"])
 WarrantyState = Literal["expired", "expiring", "valid", "none"]
@@ -69,6 +70,24 @@ def list_items(
         page=page,
         page_size=page_size,
         total=session.scalar(count_statement) or 0,
+    )
+
+
+@router.get("/export")
+def export_items(
+    session: DbSession,
+    user: CurrentUser,
+    include_archived: bool = Query(default=False),
+) -> Response:
+    household = _default_household(session, user.id)
+    filters = [HomeItem.household_id == household.id]
+    if not include_archived:
+        filters.append(HomeItem.archived_at.is_(None))
+    items = list(session.scalars(select(HomeItem).where(*filters).order_by(HomeItem.name.asc())))
+    return Response(
+        content=inventory_csv(items),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="homeledger-inventory.csv"'},
     )
 
 
