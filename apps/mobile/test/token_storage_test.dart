@@ -43,6 +43,29 @@ void main() {
     expect(restored?.displayName, session.displayName);
   });
 
+  test('rotates tokens without replacing the persisted session profile', () async {
+    final storage = TokenStorage(InMemorySecureKeyValueStore());
+    const session = StoredSession(
+      userId: 'user-1',
+      email: 'owner@example.test',
+      displayName: 'Owner',
+    );
+
+    await storage.save(
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      session: session,
+    );
+    await storage.saveTokens(
+      accessToken: 'renewed-access-token',
+      refreshToken: 'renewed-refresh-token',
+    );
+
+    expect(await storage.readAccessToken(), 'renewed-access-token');
+    expect(await storage.readRefreshToken(), 'renewed-refresh-token');
+    expect((await storage.readSession())?.userId, 'user-1');
+  });
+
   test('drops an invalid stored session instead of restoring partial data', () async {
     final store = InMemorySecureKeyValueStore()
       ..values['homeledger_session_v1'] = '{"user_id": 42}';
