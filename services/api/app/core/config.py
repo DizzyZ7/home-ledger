@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -25,6 +25,15 @@ class Settings(BaseSettings):
     rate_limit_requests: int = Field(default=120, ge=1, le=10000)
     rate_limit_window_seconds: int = Field(default=60, ge=1, le=3600)
     log_level: str = "INFO"
+
+    @field_validator("household_invite_secret_key", mode="before")
+    @classmethod
+    def normalize_optional_invite_secret(cls, value: object) -> object:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            return value.strip() or None
+        return value
 
     @property
     def parsed_cors_origins(self) -> list[str]:
