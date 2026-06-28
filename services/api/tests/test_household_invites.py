@@ -71,6 +71,20 @@ def test_owner_can_revoke_invitation_and_member_cannot_manage_invites(client):
     owner_headers = _headers(owner)
     member_headers = _headers(member)
 
+    owner_household = client.get("/api/v1/households/current", headers=owner_headers).json()
+    added = client.post(
+        "/api/v1/households/current/members",
+        headers=owner_headers,
+        json={"email": "member@example.com"},
+    )
+    assert added.status_code == 201
+    selected = client.post(
+        f"/api/v1/households/{owner_household['id']}/select",
+        headers=member_headers,
+    )
+    assert selected.status_code == 200
+    assert selected.json()["role"] == "member"
+
     invite = client.post(
         "/api/v1/households/current/invites",
         headers=owner_headers,
