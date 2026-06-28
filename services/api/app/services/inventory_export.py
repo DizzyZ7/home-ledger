@@ -1,6 +1,6 @@
 import csv
+from collections.abc import Iterable
 from io import StringIO
-from typing import Iterable
 
 from app.models.item import HomeItem
 
