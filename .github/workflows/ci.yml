@@ -29,7 +29,7 @@ jobs:
           set -o pipefail
           ruff --version | tee api-ruff-version.txt
           ruff check . 2>&1 | tee api-ruff-check-report.txt
-          ruff format --check --diff . 2>&1 | tee api-ruff-format-report.txt
+          ruff format --check --diff --force-exclude . 2>&1 | tee api-ruff-format-report.txt
       - name: Upload API lint report on failure
         if: failure()
         uses: actions/upload-artifact@v4
