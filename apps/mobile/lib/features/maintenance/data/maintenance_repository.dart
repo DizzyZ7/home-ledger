@@ -4,12 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
+import '../domain/maintenance_completion.dart';
 import '../domain/maintenance_task.dart';
 import 'maintenance_task_cache.dart';
 import 'maintenance_task_payload.dart';
 
 abstract class MaintenanceRepository {
   Future<List<MaintenanceTask>> loadTasks({String? itemId});
+  Future<List<MaintenanceCompletion>> loadHistory({String? itemId});
   Future<MaintenanceTask> createTask(MaintenanceTask task);
   Future<MaintenanceTask> updateTask(MaintenanceTask task);
   Future<MaintenanceTask> completeTask(String taskId);
@@ -40,6 +42,22 @@ class RemoteMaintenanceRepository implements MaintenanceRepository {
           itemId == null ? cached : cached.where((task) => task.itemId == itemId),
         );
       }
+      throw ApiException.fromDio(exception);
+    }
+  }
+
+  @override
+  Future<List<MaintenanceCompletion>> loadHistory({String? itemId}) async {
+    try {
+      final response = await _client.get<Map<String, dynamic>>(
+        '/maintenance/history',
+        queryParameters: {
+          'page_size': 100,
+          if (itemId != null) 'item_id': itemId,
+        },
+      );
+      return _sortHistory(_historyFromPayload(response.data));
+    } on DioException catch (exception) {
       throw ApiException.fromDio(exception);
     }
   }
@@ -129,9 +147,23 @@ class RemoteMaintenanceRepository implements MaintenanceRepository {
         .toList(growable: false);
   }
 
+  List<MaintenanceCompletion> _historyFromPayload(Map<String, dynamic>? payload) {
+    final rawHistory = payload?['items'] as List<dynamic>? ?? const [];
+    return rawHistory
+        .whereType<Map<String, dynamic>>()
+        .map(MaintenanceCompletion.fromJson)
+        .toList(growable: false);
+  }
+
   List<MaintenanceTask> _sortTasks(Iterable<MaintenanceTask> tasks) {
     final sorted = tasks.toList(growable: false)
       ..sort((left, right) => left.nextDueDate.compareTo(right.nextDueDate));
+    return List.unmodifiable(sorted);
+  }
+
+  List<MaintenanceCompletion> _sortHistory(Iterable<MaintenanceCompletion> history) {
+    final sorted = history.toList(growable: false)
+      ..sort((left, right) => right.completedAt.compareTo(left.completedAt));
     return List.unmodifiable(sorted);
   }
 }
@@ -158,12 +190,21 @@ class MockMaintenanceRepository implements MaintenanceRepository {
         ];
 
   final List<MaintenanceTask> _tasks;
+  final List<MaintenanceCompletion> _history = [];
+  var _completionSequence = 0;
 
   @override
   Future<List<MaintenanceTask>> loadTasks({String? itemId}) async {
     final tasks = itemId == null ? _tasks : _tasks.where((task) => task.itemId == itemId).toList();
     tasks.sort((left, right) => left.nextDueDate.compareTo(right.nextDueDate));
     return List.unmodifiable(tasks);
+  }
+
+  @override
+  Future<List<MaintenanceCompletion>> loadHistory({String? itemId}) async {
+    final history = itemId == null ? _history : _history.where((entry) => entry.itemId == itemId).toList();
+    history.sort((left, right) => right.completedAt.compareTo(left.completedAt));
+    return List.unmodifiable(history);
   }
 
   @override
@@ -176,7 +217,7 @@ class MockMaintenanceRepository implements MaintenanceRepository {
   Future<MaintenanceTask> updateTask(MaintenanceTask task) async {
     final index = _tasks.indexWhere((existing) => existing.id == task.id);
     if (index == -1) {
-      throw const ApiException('Maintenance task was not found.');
+      throw const ApiException('Item was not found.');
     }
     _tasks[index] = task;
     return task;
@@ -188,7 +229,21 @@ class MockMaintenanceRepository implements MaintenanceRepository {
     if (index == -1) {
       throw const ApiException('Maintenance task was not found.');
     }
-    final completed = _tasks[index].markCompleted(DateTime.now());
+
+    final task = _tasks[index];
+    final completedAt = DateTime.now().toUtc();
+    _history.add(
+      MaintenanceCompletion(
+        id: 'mock-completion-${++_completionSequence}',
+        householdId: 'mock-household',
+        itemId: task.itemId,
+        itemName: task.itemName ?? task.itemId,
+        taskId: task.id,
+        taskTitle: task.title,
+        completedAt: completedAt,
+      ),
+    );
+    final completed = task.markCompleted(completedAt);
     _tasks[index] = completed;
     return completed;
   }
