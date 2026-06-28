@@ -6,6 +6,7 @@ import '../data/household_repository.dart';
 import '../domain/household_member.dart';
 import '../domain/household_summary.dart';
 import 'current_household_provider.dart';
+import 'household_invites_section.dart';
 import 'household_localizations.dart';
 
 class HouseholdMembersScreen extends ConsumerStatefulWidget {
@@ -123,14 +124,16 @@ class _HouseholdMembersScreenState extends ConsumerState<HouseholdMembersScreen>
                 ),
               ),
               const SizedBox(height: 16),
-              if (isOwner)
+              if (isOwner) ...[
                 _AddMemberForm(
                   formKey: _formKey,
                   emailController: _emailController,
                   adding: _adding,
                   onAdd: _addMember,
-                )
-              else
+                ),
+                const SizedBox(height: 12),
+                const HouseholdInvitesSection(),
+              ] else
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
