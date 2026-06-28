@@ -37,6 +37,7 @@ def _active_owned_item(session: DbSession, user_id: str, item_id: str) -> HomeIt
 
 
 def _owned_task(session: DbSession, user_id: str, task_id: str) -> MaintenanceTask:
+    household = _default_household(session, user_id)
     task = session.scalar(
         select(MaintenanceTask)
         .options(
@@ -45,7 +46,7 @@ def _owned_task(session: DbSession, user_id: str, task_id: str) -> MaintenanceTa
         )
         .where(MaintenanceTask.id == task_id)
     )
-    if task is None or task.household.owner_id != user_id:
+    if task is None or task.household_id != household.id:
         raise HTTPException(
             status_code=404,
             detail={"code": "task_not_found", "message": "Task was not found."},

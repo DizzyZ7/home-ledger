@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import func, select
 
 from app.api.dependencies import CurrentUser, DbSession
-from app.models.household import Household
+from app.api.household_access import active_household_for_user
 from app.models.item import HomeItem
 from app.schemas.common import Page
 from app.schemas.items import ItemCreate, ItemResponse, ItemUpdate
@@ -14,16 +14,14 @@ router = APIRouter(prefix="/items", tags=["items"])
 WarrantyState = Literal["expired", "expiring", "valid", "none"]
 
 
-def _default_household(session: DbSession, user_id: str) -> Household:
-    household = session.scalar(select(Household).where(Household.owner_id == user_id).order_by(Household.created_at))
-    if household is None:
-        raise HTTPException(status_code=409, detail={"code": "household_missing", "message": "Household is missing."})
-    return household
+def _default_household(session: DbSession, user_id: str):
+    return active_household_for_user(session, user_id)
 
 
 def _owned_item(session: DbSession, user_id: str, item_id: str) -> HomeItem:
+    household = _default_household(session, user_id)
     item = session.get(HomeItem, item_id)
-    if item is None or item.household.owner_id != user_id:
+    if item is None or item.household_id != household.id:
         raise HTTPException(status_code=404, detail={"code": "item_not_found", "message": "Item was not found."})
     return item
 
