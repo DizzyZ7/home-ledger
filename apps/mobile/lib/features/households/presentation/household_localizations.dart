@@ -78,6 +78,14 @@ extension HouseholdLocalizations on BuildContext {
       ? 'Вставьте код вида HL-XXXX-XXXX-XXXX-XXXX-XXXX'
       : 'Paste a code like HL-XXXX-XXXX-XXXX-XXXX-XXXX';
 
+  String get invitationLifetime => l10n.languageCode == 'ru' ? 'Срок действия кода' : 'Code lifetime';
+
+  String get invitationLifetime24Hours => l10n.languageCode == 'ru' ? '24 часа' : '24 hours';
+
+  String get invitationLifetime72Hours => l10n.languageCode == 'ru' ? '3 дня' : '3 days';
+
+  String get invitationLifetime168Hours => l10n.languageCode == 'ru' ? '7 дней' : '7 days';
+
   String demoInvitationCode(String code) => l10n.languageCode == 'ru'
       ? 'Демо-код: $code'
       : 'Demo code: $code';
