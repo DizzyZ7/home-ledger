@@ -12,10 +12,11 @@ Household information usually fragments across paper receipts, chat messages, ph
 
 ## MVP
 
-- Add, view, edit, and archive household items through the REST API.
+- Add, view, edit, archive, and restore household items through the REST API and Flutter UI.
 - Keep warranty expiry, purchase date, serial number, location, and notes.
-- Track recurring maintenance tasks through the REST API.
-- See expiring-warranty attention indicators in the mobile dashboard.
+- Track recurring maintenance tasks, complete them, and inspect completion history.
+- See actionable expiring-warranty and overdue-maintenance indicators in the mobile dashboard.
+- Switch between households without mixing active UI state or offline snapshots.
 - Work in a mock-first mobile mode without starting backend services.
 - Use a self-hosted FastAPI + PostgreSQL backend with registration and sign-in.
 - Use Russian and English UI strings with system light/dark theme support.
@@ -43,13 +44,13 @@ Household information usually fragments across paper receipts, chat messages, ph
 The repository is a monorepo with clear product boundaries:
 
 ```text
-apps/mobile       Flutter client, mock mode, local cache, presentation and domain layers
+apps/mobile       Flutter client, mock mode, secure session, local cache, presentation and domain layers
 services/api      FastAPI service, migrations, tests and seed data
 docs              Product, architectural and release documentation
 .github           CI, issue templates and pull request guidance
 ```
 
-The mobile app follows feature-first Clean Architecture with a presentation/domain/data split. The API is layered into routes, services, models and infrastructure. See [docs/architecture.md](docs/architecture.md).
+The mobile app follows feature-first Clean Architecture with a presentation/domain/data split. The API is layered into routes, services, models and infrastructure. Offline inventory and maintenance snapshots are scoped to both the signed-in user and active household, then purged on sign-out. See [docs/architecture.md](docs/architecture.md).
 
 ## Quick start
 
@@ -121,7 +122,11 @@ Use `.env.example` as the only template. Do not commit `.env`, access tokens, pa
 - [x] Public architecture and self-hosted development environment
 - [x] Authenticated item and maintenance REST API
 - [x] Flutter dashboard, mock mode, local cache and sign-in foundation
-- [ ] Item details, item edit and archive UX in mobile client
+- [x] Item details, editing, archiving and restoration UX
+- [x] Warranty overview, filtering and attention indicators
+- [x] Maintenance creation, editing, recurring completion and history
+- [x] Household switching, members and household-scoped offline data
+- [x] Session-scoped secure offline cache boundaries and logout cleanup
 - [ ] Receipt photo attachments through a pluggable local storage adapter
 - [ ] Household invitations and per-household roles
 - [ ] Widgets and maintenance reminders
