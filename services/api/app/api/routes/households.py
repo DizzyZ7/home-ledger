@@ -7,10 +7,12 @@ from app.api.household_access import active_household_membership, require_active
 from app.models.household import Household, HouseholdMember
 from app.models.user import User
 from app.schemas.households import (
+    HouseholdCreate,
     HouseholdDetailResponse,
     HouseholdMemberCreate,
     HouseholdMemberResponse,
     HouseholdSummaryResponse,
+    HouseholdUpdate,
 )
 
 router = APIRouter(prefix="/households", tags=["households"])
@@ -43,22 +45,75 @@ def _member_response(membership: HouseholdMember) -> HouseholdMemberResponse:
 def list_households(session: DbSession, user: CurrentUser) -> list[HouseholdSummaryResponse]:
     memberships = list(
         session.scalars(
-            select(HouseholdMember).options(selectinload(HouseholdMember.household)).join(HouseholdMember.household).where(HouseholdMember.user_id == user.id).order_by(Household.created_at.asc())
+            select(HouseholdMember)
+            .options(selectinload(HouseholdMember.household))
+            .join(HouseholdMember.household)
+            .where(HouseholdMember.user_id == user.id)
+            .order_by(Household.created_at.asc())
         )
     )
     return [_summary_response(membership, user.active_household_id) for membership in memberships]
+
+
+@router.post("", response_model=HouseholdSummaryResponse, status_code=status.HTTP_201_CREATED)
+def create_household(
+    payload: HouseholdCreate,
+    session: DbSession,
+    user: CurrentUser,
+) -> HouseholdSummaryResponse:
+    household = Household(name=payload.name, owner_id=user.id)
+    session.add(household)
+    session.flush()
+
+    membership = HouseholdMember(
+        household_id=household.id,
+        user_id=user.id,
+        role="owner",
+    )
+    session.add(membership)
+    user.active_household_id = household.id
+    session.commit()
+    session.refresh(household)
+
+    return HouseholdSummaryResponse(
+        id=household.id,
+        name=household.name,
+        owner_id=household.owner_id,
+        role="owner",
+        is_active=True,
+        created_at=household.created_at,
+    )
 
 
 @router.get("/current", response_model=HouseholdDetailResponse)
 def get_current_household(session: DbSession, user: CurrentUser) -> HouseholdDetailResponse:
     membership = active_household_membership(session, user.id)
     members = list(
-        session.scalars(select(HouseholdMember).options(selectinload(HouseholdMember.user)).where(HouseholdMember.household_id == membership.household_id).order_by(HouseholdMember.created_at.asc()))
+        session.scalars(
+            select(HouseholdMember)
+            .options(selectinload(HouseholdMember.user))
+            .where(HouseholdMember.household_id == membership.household_id)
+            .order_by(HouseholdMember.created_at.asc())
+        )
     )
     return HouseholdDetailResponse(
         **_summary_response(membership, user.active_household_id).model_dump(),
         members=[_member_response(member) for member in members],
     )
+
+
+@router.patch("/current", response_model=HouseholdSummaryResponse)
+def rename_current_household(
+    payload: HouseholdUpdate,
+    session: DbSession,
+    user: CurrentUser,
+) -> HouseholdSummaryResponse:
+    owner_membership = require_active_household_owner(session, user.id)
+    household = owner_membership.household
+    household.name = payload.name
+    session.commit()
+    session.refresh(household)
+    return _summary_response(owner_membership, user.active_household_id)
 
 
 @router.post("/{household_id}/select", response_model=HouseholdSummaryResponse)
@@ -83,7 +138,11 @@ def select_household(household_id: str, session: DbSession, user: CurrentUser) -
     return _summary_response(membership, user.active_household_id)
 
 
-@router.post("/current/members", response_model=HouseholdMemberResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/current/members",
+    response_model=HouseholdMemberResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def add_household_member(
     payload: HouseholdMemberCreate,
     session: DbSession,
