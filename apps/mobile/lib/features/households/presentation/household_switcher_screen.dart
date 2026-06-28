@@ -106,58 +106,14 @@ class _HouseholdSwitcherScreenState extends ConsumerState<HouseholdSwitcherScree
   Future<String?> _requestHouseholdName({
     required String title,
     String? initialValue,
-  }) async {
-    final formKey = GlobalKey<FormState>();
-    final controller = TextEditingController(text: initialValue);
-    try {
-      return await showDialog<String>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(title),
-          content: Form(
-            key: formKey,
-            child: TextFormField(
-              key: const ValueKey('household-name-input'),
-              controller: controller,
-              autofocus: true,
-              maxLength: 100,
-              textInputAction: TextInputAction.done,
-              decoration: InputDecoration(
-                labelText: dialogContext.householdName,
-                prefixIcon: const Icon(Icons.home_work_outlined),
-              ),
-              validator: (value) {
-                if ((value?.trim().isEmpty ?? true)) {
-                  return dialogContext.l10n.requiredField;
-                }
-                return null;
-              },
-              onFieldSubmitted: (_) {
-                if (formKey.currentState?.validate() ?? false) {
-                  Navigator.of(dialogContext).pop(controller.text.trim());
-                }
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(dialogContext.l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (formKey.currentState?.validate() ?? false) {
-                  Navigator.of(dialogContext).pop(controller.text.trim());
-                }
-              },
-              child: Text(dialogContext.l10n.save),
-            ),
-          ],
-        ),
-      );
-    } finally {
-      controller.dispose();
-    }
+  }) {
+    return showDialog<String>(
+      context: context,
+      builder: (_) => _HouseholdNameDialog(
+        title: title,
+        initialValue: initialValue,
+      ),
+    );
   }
 
   HouseholdSummary? _activeHousehold(List<HouseholdSummary> households) {
@@ -225,6 +181,80 @@ class _HouseholdSwitcherScreenState extends ConsumerState<HouseholdSwitcherScree
           );
         },
       ),
+    );
+  }
+}
+
+class _HouseholdNameDialog extends StatefulWidget {
+  const _HouseholdNameDialog({
+    required this.title,
+    this.initialValue,
+  });
+
+  final String title;
+  final String? initialValue;
+
+  @override
+  State<_HouseholdNameDialog> createState() => _HouseholdNameDialogState();
+}
+
+class _HouseholdNameDialogState extends State<_HouseholdNameDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_formKey.currentState?.validate() ?? false) {
+      Navigator.of(context).pop(_controller.text.trim());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          key: const ValueKey('household-name-input'),
+          controller: _controller,
+          autofocus: true,
+          maxLength: 100,
+          textInputAction: TextInputAction.done,
+          decoration: InputDecoration(
+            labelText: context.householdName,
+            prefixIcon: const Icon(Icons.home_work_outlined),
+          ),
+          validator: (value) {
+            if ((value?.trim().isEmpty ?? true)) {
+              return context.l10n.requiredField;
+            }
+            return null;
+          },
+          onFieldSubmitted: (_) => _submit(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(context.l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: _submit,
+          child: Text(context.l10n.save),
+        ),
+      ],
     );
   }
 }
