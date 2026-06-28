@@ -64,6 +64,10 @@ extension HouseholdLocalizations on BuildContext {
       ? 'Вставьте код вида HL-XXXX-XXXX-XXXX-XXXX-XXXX'
       : 'Paste a code like HL-XXXX-XXXX-XXXX-XXXX-XXXX';
 
+  String demoInvitationCode(String code) => l10n.languageCode == 'ru'
+      ? 'Демо-код: $code'
+      : 'Demo code: $code';
+
   String get invitationCodeCreated => l10n.languageCode == 'ru'
       ? 'Код создан. Передайте его участнику.'
       : 'Code created. Share it with the person you invite.';
