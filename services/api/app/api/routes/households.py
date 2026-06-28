@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -5,13 +7,21 @@ from sqlalchemy.orm import selectinload
 from app.api.dependencies import CurrentUser, DbSession
 from app.api.household_access import active_household_membership, require_active_household_owner
 from app.models.household import Household, HouseholdMember
+from app.models.item import HomeItem
+from app.models.maintenance import MaintenanceCompletion, MaintenanceTask
 from app.models.user import User
+from app.schemas.exports import (
+    HouseholdExportHousehold,
+    HouseholdExportItem,
+    HouseholdExportResponse,
+)
 from app.schemas.households import (
     HouseholdDetailResponse,
     HouseholdMemberCreate,
     HouseholdMemberResponse,
     HouseholdSummaryResponse,
 )
+from app.schemas.items import MaintenanceCompletionResponse, MaintenanceTaskResponse
 
 router = APIRouter(prefix="/households", tags=["households"])
 
@@ -43,7 +53,11 @@ def _member_response(membership: HouseholdMember) -> HouseholdMemberResponse:
 def list_households(session: DbSession, user: CurrentUser) -> list[HouseholdSummaryResponse]:
     memberships = list(
         session.scalars(
-            select(HouseholdMember).options(selectinload(HouseholdMember.household)).join(HouseholdMember.household).where(HouseholdMember.user_id == user.id).order_by(Household.created_at.asc())
+            select(HouseholdMember)
+            .options(selectinload(HouseholdMember.household))
+            .join(HouseholdMember.household)
+            .where(HouseholdMember.user_id == user.id)
+            .order_by(Household.created_at.asc())
         )
     )
     return [_summary_response(membership, user.active_household_id) for membership in memberships]
@@ -53,11 +67,60 @@ def list_households(session: DbSession, user: CurrentUser) -> list[HouseholdSumm
 def get_current_household(session: DbSession, user: CurrentUser) -> HouseholdDetailResponse:
     membership = active_household_membership(session, user.id)
     members = list(
-        session.scalars(select(HouseholdMember).options(selectinload(HouseholdMember.user)).where(HouseholdMember.household_id == membership.household_id).order_by(HouseholdMember.created_at.asc()))
+        session.scalars(
+            select(HouseholdMember)
+            .options(selectinload(HouseholdMember.user))
+            .where(HouseholdMember.household_id == membership.household_id)
+            .order_by(HouseholdMember.created_at.asc())
+        )
     )
     return HouseholdDetailResponse(
         **_summary_response(membership, user.active_household_id).model_dump(),
         members=[_member_response(member) for member in members],
+    )
+
+
+@router.get("/current/export", response_model=HouseholdExportResponse)
+def export_current_household(session: DbSession, user: CurrentUser) -> HouseholdExportResponse:
+    membership = active_household_membership(session, user.id)
+    household = membership.household
+
+    items = list(
+        session.scalars(
+            select(HomeItem)
+            .where(HomeItem.household_id == household.id)
+            .order_by(HomeItem.created_at.asc(), HomeItem.id.asc())
+        )
+    )
+    tasks = list(
+        session.scalars(
+            select(MaintenanceTask)
+            .options(selectinload(MaintenanceTask.item))
+            .where(MaintenanceTask.household_id == household.id)
+            .order_by(MaintenanceTask.created_at.asc(), MaintenanceTask.id.asc())
+        )
+    )
+    completions = list(
+        session.scalars(
+            select(MaintenanceCompletion)
+            .options(selectinload(MaintenanceCompletion.item))
+            .where(MaintenanceCompletion.household_id == household.id)
+            .order_by(MaintenanceCompletion.completed_at.desc(), MaintenanceCompletion.id.asc())
+        )
+    )
+
+    return HouseholdExportResponse(
+        exported_at=datetime.now(UTC),
+        household=HouseholdExportHousehold(
+            id=household.id,
+            name=household.name,
+            created_at=household.created_at,
+        ),
+        items=[HouseholdExportItem.model_validate(item) for item in items],
+        maintenance_tasks=[MaintenanceTaskResponse.model_validate(task) for task in tasks],
+        maintenance_completions=[
+            MaintenanceCompletionResponse.model_validate(completion) for completion in completions
+        ],
     )
 
 
