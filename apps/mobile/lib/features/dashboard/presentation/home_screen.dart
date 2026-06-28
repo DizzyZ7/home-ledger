@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import '../../../app.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../auth/presentation/session_controller.dart';
+import '../../households/presentation/household_controller.dart';
+import '../../households/presentation/household_localizations.dart';
 import '../../items/domain/home_item.dart';
 import '../../items/presentation/item_localizations.dart';
 import '../../items/presentation/warranty_status_badge.dart';
@@ -22,13 +24,21 @@ class HomeScreen extends ConsumerWidget {
     final items = ref.watch(itemListControllerProvider);
     final locale = ref.watch(localeProvider);
     final l10n = context.l10n;
+    final households = ref.watch(householdControllerProvider);
     final searchQuery = ref.watch(inventorySearchQueryProvider);
     final warrantyFilter = ref.watch(inventoryWarrantyFilterProvider);
+    final activeHousehold = households.valueOrNull?.where((household) => household.isActive).firstOrNull;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.inventory),
         actions: [
+          IconButton(
+            key: const ValueKey('household-switcher-action'),
+            tooltip: activeHousehold?.name ?? context.householdTitle,
+            icon: const Icon(Icons.home_outlined),
+            onPressed: () => context.push('/households'),
+          ),
           IconButton(
             tooltip: l10n.archive,
             icon: const Icon(Icons.archive_outlined),
