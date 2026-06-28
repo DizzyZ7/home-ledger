@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import EmailStr
+from pydantic import EmailStr, Field, field_validator
 
 from app.schemas.common import APIModel
 
@@ -31,3 +31,23 @@ class HouseholdDetailResponse(HouseholdSummaryResponse):
 
 class HouseholdMemberCreate(APIModel):
     email: EmailStr
+
+
+class HouseholdNamePayload(APIModel):
+    name: str = Field(min_length=1, max_length=100)
+
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Household name must not be blank.")
+        return normalized
+
+
+class HouseholdCreate(HouseholdNamePayload):
+    pass
+
+
+class HouseholdUpdate(HouseholdNamePayload):
+    pass
