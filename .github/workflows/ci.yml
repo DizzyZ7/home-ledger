@@ -32,7 +32,7 @@ jobs:
           ruff format --check --diff . 2>&1 | tee api-ruff-format-report.txt
       - name: Upload API lint report on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: api-lint-report
           path: |
@@ -64,7 +64,7 @@ jobs:
           flutter analyze 2>&1 | tee flutter-analyze-report.txt
       - name: Upload analyzer report on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: flutter-analyze-report
           path: apps/mobile/flutter-analyze-report.txt
@@ -75,7 +75,7 @@ jobs:
           flutter test 2>&1 | tee flutter-test-report.txt
       - name: Upload test report on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: flutter-test-report
           path: apps/mobile/flutter-test-report.txt
